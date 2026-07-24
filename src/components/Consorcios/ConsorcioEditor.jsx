@@ -20,11 +20,11 @@ function SelectorNuevaCuenta({ catalogo, placeholder, onAgregar }) {
   }
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
+    <div className="flex flex-col gap-2">
       <select
         value={itemId}
         onChange={(e) => setItemId(e.target.value)}
-        className="flex-1 border rounded-lg p-2 text-sm bg-white"
+        className="w-full border rounded-lg p-2 text-sm bg-white"
       >
         <option value="">Elegir del catálogo...</option>
         {catalogo.map((item) => (
@@ -38,12 +38,12 @@ function SelectorNuevaCuenta({ catalogo, placeholder, onAgregar }) {
         value={alias}
         onChange={(e) => setAlias(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 border rounded-lg p-2 text-sm"
+        className="w-full border rounded-lg p-2 text-sm"
       />
       <button
         onClick={agregar}
         disabled={!itemId || agregando}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-40 whitespace-nowrap"
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-40"
       >
         <i className="fa-solid fa-plus mr-1"></i> Agregar cuenta
       </button>
@@ -209,15 +209,17 @@ export default function ConsorcioEditor({
           {/* PROVEEDORES */}
           <div className="bg-slate-50 p-4 rounded-lg border space-y-3">
             <h4 className="font-bold text-sm text-slate-700">
-              <i className="fa-solid fa-truck-field mr-1"></i> Cuentas / Trabajos de Proveedores
+              <i className="fa-solid fa-truck-field mr-1"></i> Proveedores con Facturación Mensual Fija
             </h4>
             <p className="text-[11px] text-slate-400 -mt-2">
-              Podés agregar más de un trabajo con el mismo proveedor (ej: dos facturas distintas) usando un alias.
+              Usá esto solo para proveedores que facturan todos los meses (ej: mantenimiento de
+              ascensores). Se generan solos con "Generar Borrador". Para un trabajo puntual o
+              una factura única, no hace falta cargarlo acá — usá el botón "Nuevo" del dashboard.
             </p>
 
             <SelectorNuevaCuenta
               catalogo={proveedores}
-              placeholder="Alias (ej: Reparación ascensor 3)"
+              placeholder="Alias (ej: Contrato mantenimiento)"
               onAgregar={(proveedorId, alias) => onAddCuentaProveedor(consorcio.id, proveedorId, alias)}
             />
 

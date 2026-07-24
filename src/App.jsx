@@ -55,6 +55,7 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     addCuentaProveedor,
     deleteCuentaProveedor,
     updateMovimiento,
+    addMovimientoManual,
     updateNotaMovimiento,
     deleteMovimiento,
     generarMes,
@@ -94,6 +95,8 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
           <Dashboard
             movimientos={movimientos}
             consorcios={consorcios}
+            servicios={servicios}
+            proveedores={proveedores}
             ultimaActualizacionGlobal={ultimaActualizacionGlobal}
             onGuardarMovimiento={updateMovimiento}
             onEliminarMovimiento={async (id) => {
@@ -103,6 +106,7 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
             }}
             onGuardarNota={updateNotaMovimiento}
             onGenerarMes={generarMes}
+            onCrearMovimientoManual={addMovimientoManual}
           />
         )}
 

@@ -2,22 +2,29 @@ import { useState, useMemo } from 'react';
 import StatsCards from './StatsCards';
 import MovimientosTable from './MovimientosTable';
 import UltimaActualizacionBadge from './UltimaActualizacionBadge';
-import { esHoy, esEstaSemana, esVencido } from '../../utils/dateHelpers';
+import NuevoMovimientoModal from './NuevoMovimientoModal';
+import { esHoy, esEstaSemana, esVencido, getMesesDisponibles, hoyStr } from '../../utils/dateHelpers';
 
 export default function Dashboard({
   movimientos,
   consorcios,
+  servicios,
+  proveedores,
   ultimaActualizacionGlobal,
   onGuardarMovimiento,
   onEliminarMovimiento,
   onGuardarNota,
   onGenerarMes,
+  onCrearMovimientoManual,
 }) {
-  const [filterMes, setFilterMes] = useState('2026-07');
+  const [filterMes, setFilterMes] = useState(hoyStr().slice(0, 7));
   const [filterEstado, setFilterEstado] = useState('TODOS');
   const [filtroTiempoRango, setFiltroTiempoRango] = useState(null);
   const [sortBy, setSortBy] = useState('consorcio');
   const [generando, setGenerando] = useState(false);
+  const [mostrarModalNuevo, setMostrarModalNuevo] = useState(false);
+
+  const mesesDisponibles = useMemo(() => getMesesDisponibles(movimientos), [movimientos]);
 
   const stats = useMemo(() => {
     let cntVencidos = 0, cntHoy = 0, cntSemana = 0, pendientes = 0, cargadas = 0, pagadas = 0;
@@ -78,6 +85,11 @@ export default function Dashboard({
     }
   }
 
+  async function crearMovimientoManual(consorcioId, tipo, itemId) {
+    await onCrearMovimientoManual(consorcioId, tipo, itemId);
+    setFilterMes('TODOS');
+  }
+
   return (
     <section className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
@@ -94,8 +106,11 @@ export default function Dashboard({
               onChange={(e) => setFilterMes(e.target.value)}
               className="text-sm font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
             >
-              <option value="2026-07">Julio 2026</option>
-              <option value="2026-08">Agosto 2026</option>
+              {mesesDisponibles.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
               <option value="TODOS">Todos los meses</option>
             </select>
           </div>
@@ -107,8 +122,24 @@ export default function Dashboard({
             <i className="fa-solid fa-arrows-rotate"></i>
             {generando ? 'Generando...' : 'Generar Borrador'}
           </button>
+          <button
+            onClick={() => setMostrarModalNuevo(true)}
+            className="bg-slate-800 hover:bg-slate-900 text-white text-sm px-4 py-2 rounded-lg font-semibold shadow-sm flex items-center gap-2"
+          >
+            <i className="fa-solid fa-plus"></i> Nuevo
+          </button>
         </div>
       </div>
+
+      {mostrarModalNuevo && (
+        <NuevoMovimientoModal
+          consorcios={consorcios}
+          servicios={servicios}
+          proveedores={proveedores}
+          onCrear={crearMovimientoManual}
+          onClose={() => setMostrarModalNuevo(false)}
+        />
+      )}
 
       <div className="flex justify-end">
         <UltimaActualizacionBadge isoString={ultimaActualizacionGlobal} />

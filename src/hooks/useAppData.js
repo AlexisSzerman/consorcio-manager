@@ -239,6 +239,45 @@ export function useAppData() {
   }, []);
 
   // ---------- Movimientos ----------
+  // Crea un movimiento puntual eligiendo consorcio + servicio o proveedor directo
+  // del catálogo, sin necesidad de una "cuenta" registrada en el consorcio.
+  const addMovimientoManual = useCallback(async (consorcioId, tipo, itemId) => {
+    let itemNombre = '';
+    let mailOrLink = '';
+
+    if (tipo === 'servicio') {
+      const s = servicios.find((serv) => serv.id === itemId);
+      if (!s) throw new Error('Servicio no encontrado');
+      itemNombre = s.nombre;
+      mailOrLink = s.link || '';
+    } else {
+      const p = proveedores.find((prov) => prov.id === itemId);
+      if (!p) throw new Error('Proveedor no encontrado');
+      itemNombre = p.nombre;
+      mailOrLink = p.mail || '';
+    }
+
+    const { data, error } = await supabase
+      .from('movimientos')
+      .insert({
+        consorcio_id: consorcioId,
+        item_nombre: itemNombre,
+        tipo,
+        num_factura: '',
+        monto: 0,
+        estado: 'PENDIENTE',
+        vencimiento: null,
+        fecha_pago: null,
+        mail_or_link: mailOrLink,
+        notas: '',
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    setMovimientos((prev) => [...prev, data]);
+    return data;
+  }, [servicios, proveedores]);
+
   const updateMovimiento = useCallback(async (id, campos) => {
     const { data, error } = await supabase
       .from('movimientos')
@@ -348,6 +387,7 @@ export function useAppData() {
     addCuentaProveedor,
     deleteCuentaProveedor,
     updateMovimiento,
+    addMovimientoManual,
     updateNotaMovimiento,
     deleteMovimiento,
     generarMes,
