@@ -34,12 +34,30 @@ export function useAppData() {
 
       const consorciosConRelaciones = (consorciosData || []).map((c) => ({
         ...c,
-        serviciosIds: (consServData || [])
+        serviciosCuentas: (consServData || [])
           .filter((r) => r.consorcio_id === c.id)
-          .map((r) => r.servicio_id),
-        proveedoresIds: (consProvData || [])
+          .map((r) => {
+            const s = (serviciosData || []).find((serv) => serv.id === r.servicio_id);
+            return {
+              id: r.id,
+              servicio_id: r.servicio_id,
+              alias: r.alias || '',
+              nombre: s?.nombre || '(servicio eliminado)',
+              link: s?.link || '',
+            };
+          }),
+        proveedoresCuentas: (consProvData || [])
           .filter((r) => r.consorcio_id === c.id)
-          .map((r) => r.proveedor_id),
+          .map((r) => {
+            const p = (proveedoresData || []).find((prov) => prov.id === r.proveedor_id);
+            return {
+              id: r.id,
+              proveedor_id: r.proveedor_id,
+              alias: r.alias || '',
+              nombre: p?.nombre || '(proveedor eliminado)',
+              mail: p?.mail || '',
+            };
+          }),
       }));
 
       setServicios(serviciosData || []);
@@ -139,7 +157,7 @@ export function useAppData() {
       .select()
       .single();
     if (error) throw error;
-    const nuevo = { ...data, serviciosIds: [], proveedoresIds: [] };
+    const nuevo = { ...data, serviciosCuentas: [], proveedoresCuentas: [] };
     setConsorcios((prev) => [...prev, nuevo]);
     return nuevo;
   }, []);
@@ -150,39 +168,75 @@ export function useAppData() {
     setConsorcios((prev) => prev.map((c) => (c.id === id ? { ...c, ...campos } : c)));
   }, []);
 
-  const toggleAsignacion = useCallback(async (consorcioId, tipo, itemId) => {
-    const tabla = tipo === 'servicios' ? 'consorcio_servicios' : 'consorcio_proveedores';
-    const columnaItem = tipo === 'servicios' ? 'servicio_id' : 'proveedor_id';
-    const key = tipo === 'servicios' ? 'serviciosIds' : 'proveedoresIds';
-
-    const consorcio = consorcios.find((c) => c.id === consorcioId);
-    const yaAsignado = consorcio ? consorcio[key].includes(itemId) : false;
-
-    if (yaAsignado) {
-      const { error } = await supabase
-        .from(tabla)
-        .delete()
-        .eq('consorcio_id', consorcioId)
-        .eq(columnaItem, itemId);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from(tabla)
-        .insert({ consorcio_id: consorcioId, [columnaItem]: itemId });
-      if (error) throw error;
-    }
-
+  const addCuentaServicio = useCallback(async (consorcioId, servicioId, alias) => {
+    const { data, error } = await supabase
+      .from('consorcio_servicios')
+      .insert({ consorcio_id: consorcioId, servicio_id: servicioId, alias: alias || null })
+      .select()
+      .single();
+    if (error) throw error;
+    const servicio = servicios.find((s) => s.id === servicioId);
+    const cuenta = {
+      id: data.id,
+      servicio_id: servicioId,
+      alias: data.alias || '',
+      nombre: servicio?.nombre || '',
+      link: servicio?.link || '',
+    };
     setConsorcios((prev) =>
-      prev.map((c) => {
-        if (c.id !== consorcioId) return c;
-        const actual = c[key];
-        const actualizado = yaAsignado
-          ? actual.filter((x) => x !== itemId)
-          : [...actual, itemId];
-        return { ...c, [key]: actualizado };
-      })
+      prev.map((c) =>
+        c.id === consorcioId ? { ...c, serviciosCuentas: [...c.serviciosCuentas, cuenta] } : c
+      )
     );
-  }, [consorcios]);
+    return cuenta;
+  }, [servicios]);
+
+  const deleteCuentaServicio = useCallback(async (consorcioId, cuentaId) => {
+    const { error } = await supabase.from('consorcio_servicios').delete().eq('id', cuentaId);
+    if (error) throw error;
+    setConsorcios((prev) =>
+      prev.map((c) =>
+        c.id === consorcioId
+          ? { ...c, serviciosCuentas: c.serviciosCuentas.filter((cu) => cu.id !== cuentaId) }
+          : c
+      )
+    );
+  }, []);
+
+  const addCuentaProveedor = useCallback(async (consorcioId, proveedorId, alias) => {
+    const { data, error } = await supabase
+      .from('consorcio_proveedores')
+      .insert({ consorcio_id: consorcioId, proveedor_id: proveedorId, alias: alias || null })
+      .select()
+      .single();
+    if (error) throw error;
+    const proveedor = proveedores.find((p) => p.id === proveedorId);
+    const cuenta = {
+      id: data.id,
+      proveedor_id: proveedorId,
+      alias: data.alias || '',
+      nombre: proveedor?.nombre || '',
+      mail: proveedor?.mail || '',
+    };
+    setConsorcios((prev) =>
+      prev.map((c) =>
+        c.id === consorcioId ? { ...c, proveedoresCuentas: [...c.proveedoresCuentas, cuenta] } : c
+      )
+    );
+    return cuenta;
+  }, [proveedores]);
+
+  const deleteCuentaProveedor = useCallback(async (consorcioId, cuentaId) => {
+    const { error } = await supabase.from('consorcio_proveedores').delete().eq('id', cuentaId);
+    if (error) throw error;
+    setConsorcios((prev) =>
+      prev.map((c) =>
+        c.id === consorcioId
+          ? { ...c, proveedoresCuentas: c.proveedoresCuentas.filter((cu) => cu.id !== cuentaId) }
+          : c
+      )
+    );
+  }, []);
 
   // ---------- Movimientos ----------
   const updateMovimiento = useCallback(async (id, campos) => {
@@ -213,51 +267,51 @@ export function useAppData() {
     const nuevos = [];
 
     consorcios.forEach((consorcio) => {
-      consorcio.serviciosIds.forEach((sId) => {
-        const s = servicios.find((serv) => serv.id === sId);
-        if (!s) return;
+      consorcio.serviciosCuentas.forEach((cuenta) => {
         const existe = movimientos.some(
           (m) =>
-            m.consorcio_id === consorcio.id &&
-            m.item_nombre === s.nombre &&
+            m.consorcio_servicio_id === cuenta.id &&
+            m.vencimiento &&
             m.vencimiento.startsWith(mesSeleccionado)
         );
         if (!existe) {
+          const nombreConAlias = cuenta.alias ? `${cuenta.nombre} - ${cuenta.alias}` : cuenta.nombre;
           nuevos.push({
             consorcio_id: consorcio.id,
-            item_nombre: s.nombre,
+            consorcio_servicio_id: cuenta.id,
+            item_nombre: nombreConAlias,
             tipo: 'servicio',
             num_factura: '',
             monto: 0,
             estado: 'PENDIENTE',
             vencimiento: `${mesSeleccionado}-10`,
             fecha_pago: null,
-            mail_or_link: s.link,
+            mail_or_link: cuenta.link,
             notas: '',
           });
         }
       });
 
-      consorcio.proveedoresIds.forEach((pId) => {
-        const p = proveedores.find((prov) => prov.id === pId);
-        if (!p) return;
+      consorcio.proveedoresCuentas.forEach((cuenta) => {
         const existe = movimientos.some(
           (m) =>
-            m.consorcio_id === consorcio.id &&
-            m.item_nombre === p.nombre &&
+            m.consorcio_proveedor_id === cuenta.id &&
+            m.vencimiento &&
             m.vencimiento.startsWith(mesSeleccionado)
         );
         if (!existe) {
+          const nombreConAlias = cuenta.alias ? `${cuenta.nombre} - ${cuenta.alias}` : cuenta.nombre;
           nuevos.push({
             consorcio_id: consorcio.id,
-            item_nombre: p.nombre,
+            consorcio_proveedor_id: cuenta.id,
+            item_nombre: nombreConAlias,
             tipo: 'proveedor',
             num_factura: '',
             monto: 0,
             estado: 'PENDIENTE',
             vencimiento: `${mesSeleccionado}-15`,
             fecha_pago: null,
-            mail_or_link: p.mail,
+            mail_or_link: cuenta.mail,
             notas: '',
           });
         }
@@ -270,7 +324,7 @@ export function useAppData() {
     if (error) throw error;
     setMovimientos((prev) => [...prev, ...data]);
     return data.length;
-  }, [consorcios, servicios, proveedores, movimientos]);
+  }, [consorcios, movimientos]);
 
   return {
     loading,
@@ -289,7 +343,10 @@ export function useAppData() {
     updateProveedor,
     addConsorcio,
     updateConsorcio,
-    toggleAsignacion,
+    addCuentaServicio,
+    deleteCuentaServicio,
+    addCuentaProveedor,
+    deleteCuentaProveedor,
     updateMovimiento,
     updateNotaMovimiento,
     deleteMovimiento,

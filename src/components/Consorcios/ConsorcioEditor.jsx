@@ -1,6 +1,84 @@
 import { useState, useEffect } from 'react';
 
-export default function ConsorcioEditor({ consorcio, servicios, proveedores, onGuardar, onToggleAsignacion }) {
+function SelectorNuevaCuenta({ catalogo, placeholder, onAgregar }) {
+  const [itemId, setItemId] = useState('');
+  const [alias, setAlias] = useState('');
+  const [agregando, setAgregando] = useState(false);
+
+  async function agregar() {
+    if (!itemId) return;
+    setAgregando(true);
+    try {
+      await onAgregar(itemId, alias.trim());
+      setItemId('');
+      setAlias('');
+    } catch (err) {
+      alert('Error al agregar: ' + err.message);
+    } finally {
+      setAgregando(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-2">
+      <select
+        value={itemId}
+        onChange={(e) => setItemId(e.target.value)}
+        className="flex-1 border rounded-lg p-2 text-sm bg-white"
+      >
+        <option value="">Elegir del catálogo...</option>
+        {catalogo.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.nombre}
+          </option>
+        ))}
+      </select>
+      <input
+        type="text"
+        value={alias}
+        onChange={(e) => setAlias(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 border rounded-lg p-2 text-sm"
+      />
+      <button
+        onClick={agregar}
+        disabled={!itemId || agregando}
+        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-40 whitespace-nowrap"
+      >
+        <i className="fa-solid fa-plus mr-1"></i> Agregar cuenta
+      </button>
+    </div>
+  );
+}
+
+function CuentaRow({ cuenta, subtitulo, onEliminar }) {
+  return (
+    <div className="flex justify-between items-center bg-white rounded-lg border border-slate-200 px-3 py-2">
+      <div>
+        <p className="text-sm font-semibold text-slate-800">{cuenta.nombre}</p>
+        {cuenta.alias ? (
+          <p className="text-xs text-indigo-600">{cuenta.alias}</p>
+        ) : (
+          <p className="text-xs text-slate-400">{subtitulo}</p>
+        )}
+      </div>
+      <button onClick={onEliminar} className="text-red-500 hover:text-red-700 text-xs px-2 py-1">
+        <i className="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  );
+}
+
+export default function ConsorcioEditor({
+  consorcio,
+  servicios,
+  proveedores,
+  onGuardar,
+  onAddCuentaServicio,
+  onDeleteCuentaServicio,
+  onAddCuentaProveedor,
+  onDeleteCuentaProveedor,
+}) {
   const [form, setForm] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -98,39 +176,62 @@ export default function ConsorcioEditor({ consorcio, servicios, proveedores, onG
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-          <div className="bg-slate-50 p-4 rounded-lg border">
-            <h4 className="font-bold text-sm text-slate-700 mb-3">
-              <i className="fa-solid fa-bolt mr-1"></i> Servicios Habilitados
+          {/* SERVICIOS */}
+          <div className="bg-slate-50 p-4 rounded-lg border space-y-3">
+            <h4 className="font-bold text-sm text-slate-700">
+              <i className="fa-solid fa-bolt mr-1"></i> Cuentas de Servicios
             </h4>
+            <p className="text-[11px] text-slate-400 -mt-2">
+              Podés agregar más de una cuenta del mismo servicio (ej: dos cuentas de AySA) usando un alias para distinguirlas.
+            </p>
+
+            <SelectorNuevaCuenta
+              catalogo={servicios}
+              placeholder="Alias (ej: Cliente 321321)"
+              onAgregar={(servicioId, alias) => onAddCuentaServicio(consorcio.id, servicioId, alias)}
+            />
+
             <div className="space-y-2">
-              {servicios.map((s) => (
-                <label key={s.id} className="flex items-center space-x-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consorcio.serviciosIds.includes(s.id)}
-                    onChange={() => onToggleAsignacion(consorcio.id, 'servicios', s.id)}
-                    className="rounded text-indigo-600"
-                  />
-                  <span>{s.nombre}</span>
-                </label>
+              {consorcio.serviciosCuentas.length === 0 && (
+                <p className="text-xs text-slate-400 italic">Todavía no hay cuentas de servicio cargadas.</p>
+              )}
+              {consorcio.serviciosCuentas.map((cuenta) => (
+                <CuentaRow
+                  key={cuenta.id}
+                  cuenta={cuenta}
+                  subtitulo="Sin alias"
+                  onEliminar={() => onDeleteCuentaServicio(consorcio.id, cuenta.id)}
+                />
               ))}
             </div>
           </div>
-          <div className="bg-slate-50 p-4 rounded-lg border">
-            <h4 className="font-bold text-sm text-slate-700 mb-3">
-              <i className="fa-solid fa-truck-field mr-1"></i> Proveedores Mensuales
+
+          {/* PROVEEDORES */}
+          <div className="bg-slate-50 p-4 rounded-lg border space-y-3">
+            <h4 className="font-bold text-sm text-slate-700">
+              <i className="fa-solid fa-truck-field mr-1"></i> Cuentas / Trabajos de Proveedores
             </h4>
+            <p className="text-[11px] text-slate-400 -mt-2">
+              Podés agregar más de un trabajo con el mismo proveedor (ej: dos facturas distintas) usando un alias.
+            </p>
+
+            <SelectorNuevaCuenta
+              catalogo={proveedores}
+              placeholder="Alias (ej: Reparación ascensor 3)"
+              onAgregar={(proveedorId, alias) => onAddCuentaProveedor(consorcio.id, proveedorId, alias)}
+            />
+
             <div className="space-y-2">
-              {proveedores.map((p) => (
-                <label key={p.id} className="flex items-center space-x-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consorcio.proveedoresIds.includes(p.id)}
-                    onChange={() => onToggleAsignacion(consorcio.id, 'proveedores', p.id)}
-                    className="rounded text-indigo-600"
-                  />
-                  <span>{p.nombre}</span>
-                </label>
+              {consorcio.proveedoresCuentas.length === 0 && (
+                <p className="text-xs text-slate-400 italic">Todavía no hay cuentas de proveedor cargadas.</p>
+              )}
+              {consorcio.proveedoresCuentas.map((cuenta) => (
+                <CuentaRow
+                  key={cuenta.id}
+                  cuenta={cuenta}
+                  subtitulo="Sin alias"
+                  onEliminar={() => onDeleteCuentaProveedor(consorcio.id, cuenta.id)}
+                />
               ))}
             </div>
           </div>

@@ -50,7 +50,10 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     updateProveedor,
     addConsorcio,
     updateConsorcio,
-    toggleAsignacion,
+    addCuentaServicio,
+    deleteCuentaServicio,
+    addCuentaProveedor,
+    deleteCuentaProveedor,
     updateMovimiento,
     updateNotaMovimiento,
     deleteMovimiento,
@@ -110,7 +113,10 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
             proveedores={proveedores}
             onAddConsorcio={addConsorcio}
             onUpdateConsorcio={updateConsorcio}
-            onToggleAsignacion={toggleAsignacion}
+            onAddCuentaServicio={addCuentaServicio}
+            onDeleteCuentaServicio={deleteCuentaServicio}
+            onAddCuentaProveedor={addCuentaProveedor}
+            onDeleteCuentaProveedor={deleteCuentaProveedor}
           />
         )}
 

@@ -2,7 +2,17 @@ import { useState } from 'react';
 import ConsorcioList from './ConsorcioList';
 import ConsorcioEditor from './ConsorcioEditor';
 
-export default function ConsorciosView({ consorcios, servicios, proveedores, onAddConsorcio, onUpdateConsorcio, onToggleAsignacion }) {
+export default function ConsorciosView({
+  consorcios,
+  servicios,
+  proveedores,
+  onAddConsorcio,
+  onUpdateConsorcio,
+  onAddCuentaServicio,
+  onDeleteCuentaServicio,
+  onAddCuentaProveedor,
+  onDeleteCuentaProveedor,
+}) {
   const [selectedId, setSelectedId] = useState(null);
 
   async function nuevoConsorcio() {
@@ -37,7 +47,10 @@ export default function ConsorciosView({ consorcios, servicios, proveedores, onA
           servicios={servicios}
           proveedores={proveedores}
           onGuardar={onUpdateConsorcio}
-          onToggleAsignacion={onToggleAsignacion}
+          onAddCuentaServicio={onAddCuentaServicio}
+          onDeleteCuentaServicio={onDeleteCuentaServicio}
+          onAddCuentaProveedor={onAddCuentaProveedor}
+          onDeleteCuentaProveedor={onDeleteCuentaProveedor}
         />
       </div>
     </section>
