@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { esHoy, esEstaSemana, esVencido, formatMonto } from '../../utils/dateHelpers';
+import { esHoy, esEstaSemana, esVencido, formatMonto, hoyStr } from '../../utils/dateHelpers';
 import NotaIconButton from './NotaIconButton';
 
 const ESTADO_BADGE = {
@@ -45,7 +45,7 @@ export default function MovimientoRow({ movimiento, consorcioNombre, onGuardar, 
       vencimiento: form.vencimiento || null,
     };
     if (campos.estado === 'PAGADO' && !campos.fecha_pago) {
-      campos.fecha_pago = new Date().toISOString().split('T')[0];
+      campos.fecha_pago = hoyStr();
     }
     if (!campos.fecha_pago) campos.fecha_pago = null;
     await onGuardar(movimiento.id, campos);
@@ -74,7 +74,7 @@ export default function MovimientoRow({ movimiento, consorcioNombre, onGuardar, 
     );
 
   let avisoVencimiento = null;
-  if (movimiento.estado !== 'PAGADO') {
+  if (movimiento.estado !== 'PAGADO' && movimiento.estado !== 'DEBITO_AUTOMATICO') {
     if (esVencido(movimiento.vencimiento)) {
       avisoVencimiento = (
         <span className="ml-2 text-[10px] bg-red-800 text-white font-bold px-1.5 py-0.5 rounded">

@@ -29,7 +29,7 @@ export default function Dashboard({
   const stats = useMemo(() => {
     let cntVencidos = 0, cntHoy = 0, cntSemana = 0, pendientes = 0, cargadas = 0, pagadas = 0;
     movimientos.forEach((mov) => {
-      if (mov.estado !== 'PAGADO') {
+      if (mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO') {
         if (esVencido(mov.vencimiento)) cntVencidos++;
         if (esHoy(mov.vencimiento)) cntHoy++;
         if (esEstaSemana(mov.vencimiento)) cntSemana++;
@@ -47,7 +47,7 @@ export default function Dashboard({
     const filtrados = movimientos.filter((mov) => {
       if (filterMes !== 'TODOS' && !(mov.vencimiento && mov.vencimiento.startsWith(filterMes))) return false;
       if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
-      if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && esVencido(mov.vencimiento))) return false;
+      if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO' && esVencido(mov.vencimiento))) return false;
       if (filtroTiempoRango === 'HOY' && !esHoy(mov.vencimiento)) return false;
       if (filtroTiempoRango === 'SEMANA' && !esEstaSemana(mov.vencimiento)) return false;
       return true;

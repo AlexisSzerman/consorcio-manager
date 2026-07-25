@@ -307,14 +307,15 @@ export function useAppData() {
 
     consorcios.forEach((consorcio) => {
       consorcio.serviciosCuentas.forEach((cuenta) => {
+        const nombreConAlias = cuenta.alias ? `${cuenta.nombre} - ${cuenta.alias}` : cuenta.nombre;
         const existe = movimientos.some(
           (m) =>
-            m.consorcio_servicio_id === cuenta.id &&
             m.vencimiento &&
-            m.vencimiento.startsWith(mesSeleccionado)
+            m.vencimiento.startsWith(mesSeleccionado) &&
+            (m.consorcio_servicio_id === cuenta.id ||
+              (m.consorcio_id === consorcio.id && m.item_nombre === nombreConAlias))
         );
         if (!existe) {
-          const nombreConAlias = cuenta.alias ? `${cuenta.nombre} - ${cuenta.alias}` : cuenta.nombre;
           nuevos.push({
             consorcio_id: consorcio.id,
             consorcio_servicio_id: cuenta.id,
@@ -332,14 +333,15 @@ export function useAppData() {
       });
 
       consorcio.proveedoresCuentas.forEach((cuenta) => {
+        const nombreConAlias = cuenta.alias ? `${cuenta.nombre} - ${cuenta.alias}` : cuenta.nombre;
         const existe = movimientos.some(
           (m) =>
-            m.consorcio_proveedor_id === cuenta.id &&
             m.vencimiento &&
-            m.vencimiento.startsWith(mesSeleccionado)
+            m.vencimiento.startsWith(mesSeleccionado) &&
+            (m.consorcio_proveedor_id === cuenta.id ||
+              (m.consorcio_id === consorcio.id && m.item_nombre === nombreConAlias))
         );
         if (!existe) {
-          const nombreConAlias = cuenta.alias ? `${cuenta.nombre} - ${cuenta.alias}` : cuenta.nombre;
           nuevos.push({
             consorcio_id: consorcio.id,
             consorcio_proveedor_id: cuenta.id,
