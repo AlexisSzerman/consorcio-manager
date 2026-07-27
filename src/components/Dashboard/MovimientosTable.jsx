@@ -5,8 +5,12 @@ import NotaModal from './NotaModal';
 export default function MovimientosTable({
   movimientos,
   consorcios,
+  servicios,
+  proveedores,
   filterEstado,
   onFilterEstadoChange,
+  filterConsorcio,
+  onFilterConsorcioChange,
   sortBy,
   onSortByChange,
   filtroTiempoRango,
@@ -24,7 +28,22 @@ export default function MovimientosTable({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-600">Consorcio:</label>
+            <select
+              value={filterConsorcio}
+              onChange={(e) => onFilterConsorcioChange(e.target.value)}
+              className="text-sm border border-slate-300 rounded-lg p-2 bg-white"
+            >
+              <option value="TODOS">Todos los consorcios</option>
+              {consorcios.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-slate-600">Estado:</label>
             <select
@@ -71,11 +90,8 @@ export default function MovimientosTable({
               <th className="p-4">Proveedor / Servicio</th>
               <th className="p-4">Nº Factura</th>
               <th className="p-4">Búsqueda / Link</th>
-              <th className="p-4">Vencimiento</th>
+              <th className="p-4">Vencimiento / Estado</th>
               <th className="p-4">Importe</th>
-              <th className="p-4">Estado</th>
-              <th className="p-4 text-center">Nota</th>
-              <th className="p-4">Fecha Pago</th>
               <th className="p-4 text-center">Acciones</th>
             </tr>
           </thead>
@@ -85,6 +101,8 @@ export default function MovimientosTable({
                 key={mov.id}
                 movimiento={mov}
                 consorcioNombre={nombreConsorcio(mov.consorcio_id)}
+                servicios={servicios}
+                proveedores={proveedores}
                 onGuardar={onGuardarMovimiento}
                 onEliminar={onEliminarMovimiento}
                 onAbrirNota={setNotaModalMov}
@@ -92,7 +110,7 @@ export default function MovimientosTable({
             ))}
             {movimientos.length === 0 && (
               <tr>
-                <td colSpan={10} className="p-8 text-center text-slate-400 text-sm">
+                <td colSpan={7} className="p-8 text-center text-slate-400 text-sm">
                   No hay vencimientos que coincidan con los filtros seleccionados.
                 </td>
               </tr>

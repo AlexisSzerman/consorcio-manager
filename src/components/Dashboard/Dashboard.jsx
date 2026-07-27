@@ -19,6 +19,7 @@ export default function Dashboard({
 }) {
   const [filterMes, setFilterMes] = useState(hoyStr().slice(0, 7));
   const [filterEstado, setFilterEstado] = useState('TODOS');
+  const [filterConsorcio, setFilterConsorcio] = useState('TODOS');
   const [filtroTiempoRango, setFiltroTiempoRango] = useState(null);
   const [sortBy, setSortBy] = useState('consorcio');
   const [generando, setGenerando] = useState(false);
@@ -47,23 +48,30 @@ export default function Dashboard({
     const filtrados = movimientos.filter((mov) => {
       if (filterMes !== 'TODOS' && !(mov.vencimiento && mov.vencimiento.startsWith(filterMes))) return false;
       if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
+      if (filterConsorcio !== 'TODOS' && mov.consorcio_id !== filterConsorcio) return false;
       if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO' && esVencido(mov.vencimiento))) return false;
       if (filtroTiempoRango === 'HOY' && !esHoy(mov.vencimiento)) return false;
       if (filtroTiempoRango === 'SEMANA' && !esEstaSemana(mov.vencimiento)) return false;
       return true;
     });
 
+    // Servicios antes que proveedores, luego alfabético
+    const compararTipo = (a, b) => {
+      if (a.tipo === b.tipo) return 0;
+      return a.tipo === 'servicio' ? -1 : 1;
+    };
+
     const comparadores = {
       consorcio: (a, b) =>
         nombreConsorcio(a.consorcio_id).localeCompare(nombreConsorcio(b.consorcio_id)) ||
-        (a.vencimiento || '').localeCompare(b.vencimiento || ''),
-      proveedor: (a, b) =>
-        a.item_nombre.localeCompare(b.item_nombre) || (a.vencimiento || '').localeCompare(b.vencimiento || ''),
+        compararTipo(a, b) ||
+        a.item_nombre.localeCompare(b.item_nombre),
+      proveedor: (a, b) => compararTipo(a, b) || a.item_nombre.localeCompare(b.item_nombre),
       fecha: (a, b) => (a.vencimiento || '').localeCompare(b.vencimiento || ''),
     };
 
     return [...filtrados].sort(comparadores[sortBy] || comparadores.consorcio);
-  }, [movimientos, consorcios, filterMes, filterEstado, filtroTiempoRango, sortBy]);
+  }, [movimientos, consorcios, filterMes, filterEstado, filterConsorcio, filtroTiempoRango, sortBy]);
 
   function filtrarRango(rango) {
     setFiltroTiempoRango(rango);
@@ -150,8 +158,12 @@ export default function Dashboard({
       <MovimientosTable
         movimientos={movimientosFiltrados}
         consorcios={consorcios}
+        servicios={servicios}
+        proveedores={proveedores}
         filterEstado={filterEstado}
         onFilterEstadoChange={setFilterEstado}
+        filterConsorcio={filterConsorcio}
+        onFilterConsorcioChange={setFilterConsorcio}
         sortBy={sortBy}
         onSortByChange={setSortBy}
         filtroTiempoRango={filtroTiempoRango}

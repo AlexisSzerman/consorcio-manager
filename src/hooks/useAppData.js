@@ -261,6 +261,8 @@ export function useAppData() {
       .from('movimientos')
       .insert({
         consorcio_id: consorcioId,
+        servicio_id: tipo === 'servicio' ? itemId : null,
+        proveedor_id: tipo === 'proveedor' ? itemId : null,
         item_nombre: itemNombre,
         tipo,
         num_factura: '',
@@ -319,6 +321,7 @@ export function useAppData() {
           nuevos.push({
             consorcio_id: consorcio.id,
             consorcio_servicio_id: cuenta.id,
+            servicio_id: cuenta.servicio_id,
             item_nombre: nombreConAlias,
             tipo: 'servicio',
             num_factura: '',
@@ -345,6 +348,7 @@ export function useAppData() {
           nuevos.push({
             consorcio_id: consorcio.id,
             consorcio_proveedor_id: cuenta.id,
+            proveedor_id: cuenta.proveedor_id,
             item_nombre: nombreConAlias,
             tipo: 'proveedor',
             num_factura: '',

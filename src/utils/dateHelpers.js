@@ -27,7 +27,22 @@ export function esEstaSemana(fechaStr) {
 
 export function formatMonto(monto) {
   if (!monto || monto <= 0) return '-';
-  return `$ ${Number(monto).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+  return `$${Number(monto).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+}
+
+// Convierte 'YYYY-MM-DD' a 'DD/MM/YYYY' para mostrar en pantalla
+export function formatFechaDDMMYYYY(fechaStr) {
+  if (!fechaStr) return null;
+  const [y, m, d] = fechaStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// Siempre muestra el número de factura con el prefijo "FC", sin importar
+// si el usuario tipeó solo el número o ya incluyó algún prefijo propio.
+export function formatFactura(numFactura) {
+  if (!numFactura) return null;
+  const soloNumero = numFactura.toString().replace(/^[a-zA-Z\s-]+/, '').trim();
+  return soloNumero ? `FC ${soloNumero}` : numFactura;
 }
 
 const NOMBRES_MES = [

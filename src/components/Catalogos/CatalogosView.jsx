@@ -62,7 +62,7 @@ function ServicioItem({ servicio, onGuardar, onEliminar }) {
     <li className="py-3 flex justify-between items-center text-sm">
       <div>
         <p className="font-bold text-slate-800">{servicio.nombre}</p>
-        <a href={servicio.link} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline">
+        <a href={servicio.link} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline">
           {servicio.link}
         </a>
       </div>
