@@ -45,20 +45,20 @@ export default function Dashboard({
   const movimientosFiltrados = useMemo(() => {
     const nombreConsorcio = (id) => consorcios.find((c) => c.id === id)?.nombre || '';
 
-const filtrados = movimientos.filter((mov) => {
-  if (
-    filterMes !== 'TODOS' &&
-    mov.vencimiento &&
-    !mov.vencimiento.startsWith(filterMes)
-  ) return false;
+    const filtrados = movimientos.filter((mov) => {
+      if (filterMes !== 'TODOS') {
+        const vencEnMes = mov.vencimiento && mov.vencimiento.startsWith(filterMes);
+        const pagoEnMes = mov.fecha_pago && mov.fecha_pago.startsWith(filterMes);
+        if (!vencEnMes && !pagoEnMes) return false;
+      }
 
-  if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
-  if (filterConsorcio !== 'TODOS' && mov.consorcio_id !== filterConsorcio) return false;
-  if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO' && esVencido(mov.vencimiento))) return false;
-  if (filtroTiempoRango === 'HOY' && !esHoy(mov.vencimiento)) return false;
-  if (filtroTiempoRango === 'SEMANA' && !esEstaSemana(mov.vencimiento)) return false;
-  return true;
-});
+      if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
+      if (filterConsorcio !== 'TODOS' && mov.consorcio_id !== filterConsorcio) return false;
+      if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO' && esVencido(mov.vencimiento))) return false;
+      if (filtroTiempoRango === 'HOY' && !esHoy(mov.vencimiento)) return false;
+      if (filtroTiempoRango === 'SEMANA' && !esEstaSemana(mov.vencimiento)) return false;
+      return true;
+    });
 
     // Servicios antes que proveedores, luego alfabético
     const compararTipo = (a, b) => {
