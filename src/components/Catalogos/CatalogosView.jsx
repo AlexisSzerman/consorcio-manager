@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import NuevoServicioModal from './NuevoServicioModal';
+import NuevoProveedorModal from './NuevoProveedorModal';
 
 function ServicioItem({ servicio, onGuardar, onEliminar }) {
   const [editando, setEditando] = useState(false);
@@ -183,16 +185,8 @@ export default function CatalogosView({
   onDeleteProveedor,
   onUpdateProveedor,
 }) {
-  async function nuevoServicio() {
-    const nombre = prompt('Nombre del servicio (ej: AySA, Telecentro):');
-    if (!nombre) return;
-    const link = prompt('URL o web de consulta/pago:', 'https://');
-    try {
-      await onAddServicio(nombre, link || '#');
-    } catch (err) {
-      alert('Error al crear el servicio: ' + err.message);
-    }
-  }
+  const [mostrarModalServicio, setMostrarModalServicio] = useState(false);
+  const [mostrarModalProveedor, setMostrarModalProveedor] = useState(false);
 
   async function eliminarServicio(id) {
     if (!confirm('¿Eliminar este servicio del catálogo general?')) return;
@@ -200,18 +194,6 @@ export default function CatalogosView({
       await onDeleteServicio(id);
     } catch (err) {
       alert('Error al eliminar: ' + err.message);
-    }
-  }
-
-  async function nuevoProveedor() {
-    const nombre = prompt('Nombre o Razón Social del proveedor:');
-    if (!nombre) return;
-    const mail = prompt('Email desde donde envía facturas (para búsqueda en Gmail):');
-    const nota = prompt('Notas operativas por defecto (CBU, Alias, CUIT):');
-    try {
-      await onAddProveedor(nombre, mail || '', nota || '');
-    } catch (err) {
-      alert('Error al crear el proveedor: ' + err.message);
     }
   }
 
@@ -232,7 +214,7 @@ export default function CatalogosView({
         <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
           <div className="flex justify-between items-center border-b pb-3">
             <h3 className="font-bold text-slate-800 text-lg">Servicios</h3>
-            <button onClick={nuevoServicio} className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-md">
+            <button onClick={() => setMostrarModalServicio(true)} className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-md">
               <i className="fa-solid fa-plus mr-1"></i> Agregar
             </button>
           </div>
@@ -251,7 +233,7 @@ export default function CatalogosView({
         <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
           <div className="flex justify-between items-center border-b pb-3">
             <h3 className="font-bold text-slate-800 text-lg">Proveedores</h3>
-            <button onClick={nuevoProveedor} className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-md">
+            <button onClick={() => setMostrarModalProveedor(true)} className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-md">
               <i className="fa-solid fa-plus mr-1"></i> Agregar
             </button>
           </div>
@@ -267,6 +249,19 @@ export default function CatalogosView({
           </ul>
         </div>
       </div>
+
+      {mostrarModalServicio && (
+        <NuevoServicioModal
+          onCrear={onAddServicio}
+          onClose={() => setMostrarModalServicio(false)}
+        />
+      )}
+      {mostrarModalProveedor && (
+        <NuevoProveedorModal
+          onCrear={onAddProveedor}
+          onClose={() => setMostrarModalProveedor(false)}
+        />
+      )}
     </section>
   );
 }

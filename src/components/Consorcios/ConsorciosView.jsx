@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ConsorcioList from './ConsorcioList';
 import ConsorcioEditor from './ConsorcioEditor';
+import NuevoConsorcioModal from './NuevoConsorcioModal';
 
 export default function ConsorciosView({
   consorcios,
@@ -14,16 +15,11 @@ export default function ConsorciosView({
   onDeleteCuentaProveedor,
 }) {
   const [selectedId, setSelectedId] = useState(null);
+  const [mostrarModalNuevo, setMostrarModalNuevo] = useState(false);
 
-  async function nuevoConsorcio() {
-    const nombre = prompt('Nombre del nuevo consorcio:');
-    if (!nombre) return;
-    try {
-      const creado = await onAddConsorcio(nombre);
-      setSelectedId(creado.id);
-    } catch (err) {
-      alert('Error al crear el consorcio: ' + err.message);
-    }
+  async function crearConsorcio(nombre) {
+    const creado = await onAddConsorcio(nombre);
+    setSelectedId(creado.id);
   }
 
   const selectedConsorcio = consorcios.find((c) => c.id === selectedId) || null;
@@ -33,12 +29,16 @@ export default function ConsorciosView({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-900">Gestión de Consorcios</h2>
         <button
-          onClick={nuevoConsorcio}
+          onClick={() => setMostrarModalNuevo(true)}
           className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700"
         >
           <i className="fa-solid fa-plus mr-1"></i> Nuevo Consorcio
         </button>
       </div>
+
+      {mostrarModalNuevo && (
+        <NuevoConsorcioModal onCrear={crearConsorcio} onClose={() => setMostrarModalNuevo(false)} />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <ConsorcioList consorcios={consorcios} selectedId={selectedId} onSelect={setSelectedId} />
