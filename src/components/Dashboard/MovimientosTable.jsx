@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import MovimientoRow from './MovimientoRow';
 import NotaModal from './NotaModal';
+import PagoParcialModal from './PagoParcialModal';
 
 export default function MovimientosTable({
   movimientos,
   consorcios,
   servicios,
   proveedores,
+  pagosParciales,
   filterEstado,
   onFilterEstadoChange,
   filterConsorcio,
@@ -18,8 +20,11 @@ export default function MovimientosTable({
   onGuardarMovimiento,
   onEliminarMovimiento,
   onGuardarNota,
+  onAgregarPagoParcial,
+  onEliminarPagoParcial,
 }) {
   const [notaModalMov, setNotaModalMov] = useState(null);
+  const [pagoParcialModalMov, setPagoParcialModalMov] = useState(null);
 
   function nombreConsorcio(consorcioId) {
     return consorcios.find((c) => c.id === consorcioId)?.nombre || '-';
@@ -55,6 +60,7 @@ export default function MovimientosTable({
               <option value="PENDIENTE">PENDIENTE</option>
               <option value="CARGADA">CARGADA</option>
               <option value="REVISAR">REVISAR</option>
+              <option value="PARCIAL">PARCIAL</option>
               <option value="PAGADO">PAGADO</option>
               <option value="DEBITO_AUTOMATICO">DÉBITO AUTOMÁTICO</option>
             </select>
@@ -103,9 +109,11 @@ export default function MovimientosTable({
                 consorcioNombre={nombreConsorcio(mov.consorcio_id)}
                 servicios={servicios}
                 proveedores={proveedores}
+                pagosParciales={pagosParciales}
                 onGuardar={onGuardarMovimiento}
                 onEliminar={onEliminarMovimiento}
                 onAbrirNota={setNotaModalMov}
+                onAbrirPagoParcial={setPagoParcialModalMov}
               />
             ))}
             {movimientos.length === 0 && (
@@ -124,6 +132,16 @@ export default function MovimientosTable({
           movimiento={notaModalMov}
           onClose={() => setNotaModalMov(null)}
           onGuardar={onGuardarNota}
+        />
+      )}
+
+      {pagoParcialModalMov && (
+        <PagoParcialModal
+          movimiento={pagoParcialModalMov}
+          pagos={pagosParciales.filter((p) => p.movimiento_id === pagoParcialModalMov.id)}
+          onAgregar={onAgregarPagoParcial}
+          onEliminar={onEliminarPagoParcial}
+          onClose={() => setPagoParcialModalMov(null)}
         />
       )}
     </div>

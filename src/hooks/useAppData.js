@@ -6,6 +6,7 @@ export function useAppData() {
   const [proveedores, setProveedores] = useState([]);
   const [consorcios, setConsorcios] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
+  const [pagosParciales, setPagosParciales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -20,6 +21,7 @@ export function useAppData() {
         { data: consServData, error: eConsServ },
         { data: consProvData, error: eConsProv },
         { data: movimientosData, error: eMovimientos },
+        { data: pagosParcialesData, error: ePagos },
       ] = await Promise.all([
         supabase.from('servicios').select('*').order('nombre'),
         supabase.from('proveedores').select('*').order('nombre'),
@@ -27,9 +29,10 @@ export function useAppData() {
         supabase.from('consorcio_servicios').select('*'),
         supabase.from('consorcio_proveedores').select('*'),
         supabase.from('movimientos').select('*').order('vencimiento'),
+        supabase.from('pagos_parciales').select('*').order('fecha'),
       ]);
 
-      const firstError = eServicios || eProveedores || eConsorcios || eConsServ || eConsProv || eMovimientos;
+      const firstError = eServicios || eProveedores || eConsorcios || eConsServ || eConsProv || eMovimientos || ePagos;
       if (firstError) throw firstError;
 
       const consorciosConRelaciones = (consorciosData || []).map((c) => ({
@@ -64,6 +67,7 @@ export function useAppData() {
       setProveedores(proveedoresData || []);
       setConsorcios(consorciosConRelaciones);
       setMovimientos(movimientosData || []);
+      setPagosParciales(pagosParcialesData || []);
     } catch (err) {
       console.error('Error cargando datos:', err);
       setError(err.message || 'Error al cargar los datos');
@@ -280,6 +284,70 @@ export function useAppData() {
     return data;
   }, [servicios, proveedores]);
 
+  // Recalcula y persiste el estado del movimiento según la suma de pagos parciales
+  const recalcularEstadoPorPagos = useCallback(async (movimientoId, pagosDeEsteMovimiento) => {
+    const movimiento = movimientos.find((m) => m.id === movimientoId);
+    if (!movimiento) return;
+
+    const totalPagado = pagosDeEsteMovimiento.reduce((sum, p) => sum + Number(p.monto), 0);
+
+    let nuevoEstado = movimiento.estado;
+    let nuevaFechaPago = movimiento.fecha_pago;
+
+    if (totalPagado <= 0) {
+      nuevoEstado = 'PENDIENTE';
+      nuevaFechaPago = null;
+    } else if (totalPagado < Number(movimiento.monto)) {
+      nuevoEstado = 'PARCIAL';
+      nuevaFechaPago = null;
+    } else {
+      nuevoEstado = 'PAGADO';
+      nuevaFechaPago = pagosDeEsteMovimiento.reduce(
+        (max, p) => (!max || p.fecha > max ? p.fecha : max),
+        null
+      );
+    }
+
+    if (nuevoEstado !== movimiento.estado || nuevaFechaPago !== movimiento.fecha_pago) {
+      const { data: movActualizado, error } = await supabase
+        .from('movimientos')
+        .update({ estado: nuevoEstado, fecha_pago: nuevaFechaPago })
+        .eq('id', movimientoId)
+        .select()
+        .single();
+      if (error) throw error;
+      setMovimientos((prev) => prev.map((m) => (m.id === movimientoId ? movActualizado : m)));
+    }
+  }, [movimientos]);
+
+  const addPagoParcial = useCallback(async (movimientoId, monto, fecha, nota) => {
+    const { data: nuevoPago, error } = await supabase
+      .from('pagos_parciales')
+      .insert({ movimiento_id: movimientoId, monto, fecha, nota: nota || null })
+      .select()
+      .single();
+    if (error) throw error;
+
+    const pagosActualizados = [...pagosParciales, nuevoPago];
+    setPagosParciales(pagosActualizados);
+
+    const pagosDeEsteMovimiento = pagosActualizados.filter((p) => p.movimiento_id === movimientoId);
+    await recalcularEstadoPorPagos(movimientoId, pagosDeEsteMovimiento);
+
+    return nuevoPago;
+  }, [pagosParciales, recalcularEstadoPorPagos]);
+
+  const deletePagoParcial = useCallback(async (pagoId, movimientoId) => {
+    const { error } = await supabase.from('pagos_parciales').delete().eq('id', pagoId);
+    if (error) throw error;
+
+    const pagosActualizados = pagosParciales.filter((p) => p.id !== pagoId);
+    setPagosParciales(pagosActualizados);
+
+    const pagosDeEsteMovimiento = pagosActualizados.filter((p) => p.movimiento_id === movimientoId);
+    await recalcularEstadoPorPagos(movimientoId, pagosDeEsteMovimiento);
+  }, [pagosParciales, recalcularEstadoPorPagos]);
+
   const updateMovimiento = useCallback(async (id, campos) => {
     const { data, error } = await supabase
       .from('movimientos')
@@ -378,6 +446,7 @@ export function useAppData() {
     proveedores,
     consorcios,
     movimientos,
+    pagosParciales,
     ultimaActualizacionGlobal,
     recargar: cargarTodo,
     addServicio,
@@ -394,6 +463,8 @@ export function useAppData() {
     deleteCuentaProveedor,
     updateMovimiento,
     addMovimientoManual,
+    addPagoParcial,
+    deletePagoParcial,
     updateNotaMovimiento,
     deleteMovimiento,
     generarMes,

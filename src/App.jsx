@@ -4,6 +4,7 @@ import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import ConsorciosView from './components/Consorcios/ConsorciosView';
 import CatalogosView from './components/Catalogos/CatalogosView';
+import LoadingBuilding from './components/LoadingBuilding';
 import { useAppData } from './hooks/useAppData';
 import { useAuth } from './hooks/useAuth';
 
@@ -13,8 +14,8 @@ export default function App() {
 
   if (loadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500">
-        <i className="fa-solid fa-spinner fa-spin mr-2"></i> Verificando sesión...
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <LoadingBuilding text="Verificando sesión..." />
       </div>
     );
   }
@@ -41,6 +42,7 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     proveedores,
     consorcios,
     movimientos,
+    pagosParciales,
     ultimaActualizacionGlobal,
     addServicio,
     deleteServicio,
@@ -56,6 +58,8 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     deleteCuentaProveedor,
     updateMovimiento,
     addMovimientoManual,
+    addPagoParcial,
+    deletePagoParcial,
     updateNotaMovimiento,
     deleteMovimiento,
     generarMes,
@@ -63,8 +67,8 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500">
-        <i className="fa-solid fa-spinner fa-spin mr-2"></i> Cargando datos...
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <LoadingBuilding text="Cargando consorcio..." />
       </div>
     );
   }
@@ -97,6 +101,7 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
             consorcios={consorcios}
             servicios={servicios}
             proveedores={proveedores}
+            pagosParciales={pagosParciales}
             ultimaActualizacionGlobal={ultimaActualizacionGlobal}
             onGuardarMovimiento={updateMovimiento}
             onEliminarMovimiento={async (id) => {
@@ -107,6 +112,8 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
             onGuardarNota={updateNotaMovimiento}
             onGenerarMes={generarMes}
             onCrearMovimientoManual={addMovimientoManual}
+            onAgregarPagoParcial={addPagoParcial}
+            onEliminarPagoParcial={deletePagoParcial}
           />
         )}
 

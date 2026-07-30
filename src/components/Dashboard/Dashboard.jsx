@@ -10,12 +10,15 @@ export default function Dashboard({
   consorcios,
   servicios,
   proveedores,
+  pagosParciales,
   ultimaActualizacionGlobal,
   onGuardarMovimiento,
   onEliminarMovimiento,
   onGuardarNota,
   onGenerarMes,
   onCrearMovimientoManual,
+  onAgregarPagoParcial,
+  onEliminarPagoParcial,
 }) {
   const [filterMes, setFilterMes] = useState(hoyStr().slice(0, 7));
   const [filterEstado, setFilterEstado] = useState('TODOS');
@@ -165,6 +168,7 @@ export default function Dashboard({
         consorcios={consorcios}
         servicios={servicios}
         proveedores={proveedores}
+        pagosParciales={pagosParciales}
         filterEstado={filterEstado}
         onFilterEstadoChange={setFilterEstado}
         filterConsorcio={filterConsorcio}
@@ -176,6 +180,8 @@ export default function Dashboard({
         onGuardarMovimiento={onGuardarMovimiento}
         onEliminarMovimiento={onEliminarMovimiento}
         onGuardarNota={onGuardarNota}
+        onAgregarPagoParcial={onAgregarPagoParcial}
+        onEliminarPagoParcial={onEliminarPagoParcial}
       />
     </section>
   );
