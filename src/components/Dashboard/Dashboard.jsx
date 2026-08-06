@@ -52,7 +52,17 @@ export default function Dashboard({
       if (filterMes !== 'TODOS') {
         const vencEnMes = mov.vencimiento && mov.vencimiento.startsWith(filterMes);
         const pagoEnMes = mov.fecha_pago && mov.fecha_pago.startsWith(filterMes);
-        if (!vencEnMes && !pagoEnMes) return false;
+
+        // Arrastre: facturas no resueltas (no pagadas, no débito automático)
+        // con vencimiento en un mes ANTERIOR al filtrado también se muestran,
+        // para no perderlas de vista. Las de meses futuros quedan ocultas
+        // hasta que les toque su propio mes.
+        const noResuelto = mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO';
+        const mesVencimiento = mov.vencimiento ? mov.vencimiento.slice(0, 7) : null;
+        const esDeMesAnterior = mesVencimiento && mesVencimiento < filterMes;
+        const arrastre = noResuelto && esDeMesAnterior;
+
+        if (!vencEnMes && !pagoEnMes && !arrastre) return false;
       }
 
       if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
