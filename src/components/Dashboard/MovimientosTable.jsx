@@ -9,6 +9,9 @@ export default function MovimientosTable({
   servicios,
   proveedores,
   pagosParciales,
+  seleccionados,
+  onToggleSeleccion,
+  onToggleSeleccionarTodos,
   filterEstado,
   onFilterEstadoChange,
   filterConsorcio,
@@ -92,6 +95,14 @@ export default function MovimientosTable({
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-100 text-slate-600 uppercase text-xs font-semibold">
             <tr>
+              <th className="p-4 text-center">
+                <input
+                  type="checkbox"
+                  checked={movimientos.length > 0 && movimientos.every((m) => seleccionados.has(m.id))}
+                  onChange={() => onToggleSeleccionarTodos(movimientos.map((m) => m.id))}
+                  className="w-4 h-4 rounded text-indigo-600"
+                />
+              </th>
               <th className="p-4">Consorcio</th>
               <th className="p-4">Proveedor / Servicio</th>
               <th className="p-4">Nº Factura</th>
@@ -110,6 +121,8 @@ export default function MovimientosTable({
                 servicios={servicios}
                 proveedores={proveedores}
                 pagosParciales={pagosParciales}
+                seleccionado={seleccionados.has(mov.id)}
+                onToggleSeleccion={onToggleSeleccion}
                 onGuardar={onGuardarMovimiento}
                 onEliminar={onEliminarMovimiento}
                 onAbrirNota={setNotaModalMov}
@@ -118,7 +131,7 @@ export default function MovimientosTable({
             ))}
             {movimientos.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400 text-sm">
+                <td colSpan={8} className="p-8 text-center text-slate-400 text-sm">
                   No hay vencimientos que coincidan con los filtros seleccionados.
                 </td>
               </tr>

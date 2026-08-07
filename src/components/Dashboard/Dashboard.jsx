@@ -3,6 +3,7 @@ import StatsCards from './StatsCards';
 import MovimientosTable from './MovimientosTable';
 import UltimaActualizacionBadge from './UltimaActualizacionBadge';
 import NuevoMovimientoModal from './NuevoMovimientoModal';
+import SeleccionResumen from './SeleccionResumen';
 import { esHoy, esEstaSemana, esVencido, getMesesDisponibles, hoyStr } from '../../utils/dateHelpers';
 
 export default function Dashboard({
@@ -27,6 +28,42 @@ export default function Dashboard({
   const [sortBy, setSortBy] = useState('consorcio');
   const [generando, setGenerando] = useState(false);
   const [mostrarModalNuevo, setMostrarModalNuevo] = useState(false);
+  const [seleccionados, setSeleccionados] = useState(new Set());
+
+  function toggleSeleccion(id) {
+    setSeleccionados((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+  }
+
+  function toggleSeleccionarTodos(idsVisibles) {
+    setSeleccionados((prev) => {
+      const todosSeleccionados = idsVisibles.length > 0 && idsVisibles.every((id) => prev.has(id));
+      const nuevo = new Set(prev);
+      if (todosSeleccionados) {
+        idsVisibles.forEach((id) => nuevo.delete(id));
+      } else {
+        idsVisibles.forEach((id) => nuevo.add(id));
+      }
+      return nuevo;
+    });
+  }
+
+  const totalSeleccionado = useMemo(() => {
+    return movimientos
+      .filter((m) => seleccionados.has(m.id))
+      .reduce((sum, m) => {
+        const totalPagado = pagosParciales
+          .filter((p) => p.movimiento_id === m.id)
+          .reduce((s, p) => s + Number(p.monto), 0);
+        const montoAContar =
+          totalPagado > 0 ? Math.max(Number(m.monto) - totalPagado, 0) : Number(m.monto || 0);
+        return sum + montoAContar;
+      }, 0);
+  }, [movimientos, seleccionados, pagosParciales]);
 
   const mesesDisponibles = useMemo(() => getMesesDisponibles(movimientos), [movimientos]);
 
@@ -179,6 +216,9 @@ export default function Dashboard({
         servicios={servicios}
         proveedores={proveedores}
         pagosParciales={pagosParciales}
+        seleccionados={seleccionados}
+        onToggleSeleccion={toggleSeleccion}
+        onToggleSeleccionarTodos={toggleSeleccionarTodos}
         filterEstado={filterEstado}
         onFilterEstadoChange={setFilterEstado}
         filterConsorcio={filterConsorcio}
@@ -192,6 +232,12 @@ export default function Dashboard({
         onGuardarNota={onGuardarNota}
         onAgregarPagoParcial={onAgregarPagoParcial}
         onEliminarPagoParcial={onEliminarPagoParcial}
+      />
+
+      <SeleccionResumen
+        cantidad={seleccionados.size}
+        total={totalSeleccionado}
+        onLimpiar={() => setSeleccionados(new Set())}
       />
     </section>
   );

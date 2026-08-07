@@ -39,6 +39,8 @@ export default function MovimientoRow({
   servicios,
   proveedores,
   pagosParciales,
+  seleccionado,
+  onToggleSeleccion,
   onGuardar,
   onEliminar,
   onAbrirNota,
@@ -132,6 +134,14 @@ export default function MovimientoRow({
   if (editando) {
     return (
       <tr className="border-b border-slate-100 bg-indigo-50/30">
+        <td className="p-3 text-center">
+          <input
+            type="checkbox"
+            checked={seleccionado}
+            onChange={() => onToggleSeleccion(movimiento.id)}
+            className="w-4 h-4 rounded text-indigo-600"
+          />
+        </td>
         <td className="p-3 font-semibold text-slate-800">{consorcioNombre}</td>
         <td className="p-3">{movimiento.item_nombre}</td>
         <td className="p-3">
@@ -229,7 +239,15 @@ export default function MovimientoRow({
   }
 
   return (
-    <tr className="hover:bg-slate-50 border-b border-slate-100">
+    <tr className={`hover:bg-slate-50 border-b border-slate-100 ${seleccionado ? 'bg-indigo-50/40' : ''}`}>
+      <td className="p-4 text-center">
+        <input
+          type="checkbox"
+          checked={seleccionado}
+          onChange={() => onToggleSeleccion(movimiento.id)}
+          className="w-4 h-4 rounded text-indigo-600"
+        />
+      </td>
       <td className="p-4 font-semibold text-slate-800">{consorcioNombre}</td>
       <td className="p-4">{movimiento.item_nombre}</td>
       <td className="p-4 font-mono text-xs whitespace-nowrap">
