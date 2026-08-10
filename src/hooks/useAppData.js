@@ -7,6 +7,9 @@ export function useAppData() {
   const [consorcios, setConsorcios] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
   const [pagosParciales, setPagosParciales] = useState([]);
+  const [unidades, setUnidades] = useState([]);
+  const [libroDiarioPeriodos, setLibroDiarioPeriodos] = useState([]);
+  const [libroDiarioMovimientosPorPeriodo, setLibroDiarioMovimientosPorPeriodo] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,6 +25,8 @@ export function useAppData() {
         { data: consProvData, error: eConsProv },
         { data: movimientosData, error: eMovimientos },
         { data: pagosParcialesData, error: ePagos },
+        { data: unidadesData, error: eUnidades },
+        { data: periodosData, error: ePeriodos },
       ] = await Promise.all([
         supabase.from('servicios').select('*').order('nombre'),
         supabase.from('proveedores').select('*').order('nombre'),
@@ -30,9 +35,11 @@ export function useAppData() {
         supabase.from('consorcio_proveedores').select('*'),
         supabase.from('movimientos').select('*').order('vencimiento'),
         supabase.from('pagos_parciales').select('*').order('fecha'),
+        supabase.from('unidades').select('*').order('numero_unidad'),
+        supabase.from('libro_diario_periodos').select('*').order('periodo', { ascending: false }),
       ]);
 
-      const firstError = eServicios || eProveedores || eConsorcios || eConsServ || eConsProv || eMovimientos || ePagos;
+      const firstError = eServicios || eProveedores || eConsorcios || eConsServ || eConsProv || eMovimientos || ePagos || eUnidades || ePeriodos;
       if (firstError) throw firstError;
 
       const consorciosConRelaciones = (consorciosData || []).map((c) => ({
@@ -61,6 +68,14 @@ export function useAppData() {
               mail: p?.mail || '',
             };
           }),
+        unidades: (unidadesData || [])
+          .filter((u) => u.consorcio_id === c.id)
+          .map((u) => ({
+            id: u.id,
+            numero_unidad: u.numero_unidad,
+            propietario_nombre: u.propietario_nombre,
+            alias_reconocimiento: u.alias_reconocimiento || '',
+          })),
       }));
 
       setServicios(serviciosData || []);
@@ -68,6 +83,8 @@ export function useAppData() {
       setConsorcios(consorciosConRelaciones);
       setMovimientos(movimientosData || []);
       setPagosParciales(pagosParcialesData || []);
+      setUnidades(unidadesData || []);
+      setLibroDiarioPeriodos(periodosData || []);
     } catch (err) {
       console.error('Error cargando datos:', err);
       setError(err.message || 'Error al cargar los datos');
@@ -161,7 +178,7 @@ export function useAppData() {
       .select()
       .single();
     if (error) throw error;
-    const nuevo = { ...data, serviciosCuentas: [], proveedoresCuentas: [] };
+    const nuevo = { ...data, serviciosCuentas: [], proveedoresCuentas: [], unidades: [] };
     setConsorcios((prev) => [...prev, nuevo]);
     return nuevo;
   }, []);
@@ -170,6 +187,175 @@ export function useAppData() {
     const { error } = await supabase.from('consorcios').update(campos).eq('id', id);
     if (error) throw error;
     setConsorcios((prev) => prev.map((c) => (c.id === id ? { ...c, ...campos } : c)));
+  }, []);
+
+  // ---------- Unidades / Propietarios ----------
+  const addUnidad = useCallback(async (consorcioId, numeroUnidad, propietarioNombre, aliasReconocimiento) => {
+    const { data, error } = await supabase
+      .from('unidades')
+      .insert({
+        consorcio_id: consorcioId,
+        numero_unidad: numeroUnidad,
+        propietario_nombre: propietarioNombre,
+        alias_reconocimiento: aliasReconocimiento || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+
+    const nuevaUnidad = {
+      id: data.id,
+      numero_unidad: data.numero_unidad,
+      propietario_nombre: data.propietario_nombre,
+      alias_reconocimiento: data.alias_reconocimiento || '',
+    };
+    setConsorcios((prev) =>
+      prev.map((c) =>
+        c.id === consorcioId ? { ...c, unidades: [...c.unidades, nuevaUnidad] } : c
+      )
+    );
+    setUnidades((prev) => [...prev, data]);
+    return nuevaUnidad;
+  }, []);
+
+  const updateUnidad = useCallback(async (consorcioId, unidadId, campos) => {
+    const camposDb = {
+      numero_unidad: campos.numero_unidad,
+      propietario_nombre: campos.propietario_nombre,
+      alias_reconocimiento: campos.alias_reconocimiento || null,
+    };
+    const { data, error } = await supabase
+      .from('unidades')
+      .update(camposDb)
+      .eq('id', unidadId)
+      .select()
+      .single();
+    if (error) throw error;
+
+    const unidadActualizada = {
+      id: data.id,
+      numero_unidad: data.numero_unidad,
+      propietario_nombre: data.propietario_nombre,
+      alias_reconocimiento: data.alias_reconocimiento || '',
+    };
+    setConsorcios((prev) =>
+      prev.map((c) =>
+        c.id === consorcioId
+          ? { ...c, unidades: c.unidades.map((u) => (u.id === unidadId ? unidadActualizada : u)) }
+          : c
+      )
+    );
+    setUnidades((prev) => prev.map((u) => (u.id === unidadId ? data : u)));
+    return unidadActualizada;
+  }, []);
+
+  const deleteUnidad = useCallback(async (consorcioId, unidadId) => {
+    const { error } = await supabase.from('unidades').delete().eq('id', unidadId);
+    if (error) throw error;
+    setConsorcios((prev) =>
+      prev.map((c) =>
+        c.id === consorcioId ? { ...c, unidades: c.unidades.filter((u) => u.id !== unidadId) } : c
+      )
+    );
+    setUnidades((prev) => prev.filter((u) => u.id !== unidadId));
+  }, []);
+
+  // ---------- Libro Diario ----------
+  const addPeriodoLibroDiario = useCallback(async (consorcioId, periodo, cuenta, banco) => {
+    const { data, error } = await supabase
+      .from('libro_diario_periodos')
+      .insert({ consorcio_id: consorcioId, periodo, cuenta: cuenta || 'Banco', banco: banco || null })
+      .select()
+      .single();
+    if (error) throw error;
+    setLibroDiarioPeriodos((prev) => [data, ...prev]);
+    return data;
+  }, []);
+
+  const updatePeriodoLibroDiario = useCallback(async (periodoId, campos) => {
+    const { data, error } = await supabase
+      .from('libro_diario_periodos')
+      .update(campos)
+      .eq('id', periodoId)
+      .select()
+      .single();
+    if (error) throw error;
+    setLibroDiarioPeriodos((prev) => prev.map((p) => (p.id === periodoId ? data : p)));
+    return data;
+  }, []);
+
+  const deletePeriodoLibroDiario = useCallback(async (periodoId) => {
+    const { error } = await supabase.from('libro_diario_periodos').delete().eq('id', periodoId);
+    if (error) throw error;
+    setLibroDiarioPeriodos((prev) => prev.filter((p) => p.id !== periodoId));
+    setLibroDiarioMovimientosPorPeriodo((prev) => {
+      const nuevo = { ...prev };
+      delete nuevo[periodoId];
+      return nuevo;
+    });
+  }, []);
+
+  const cargarMovimientosLibroDiario = useCallback(async (periodoId) => {
+    const { data, error } = await supabase
+      .from('libro_diario_movimientos')
+      .select('*')
+      .eq('periodo_id', periodoId)
+      .order('fecha')
+      .order('orden_original');
+    if (error) throw error;
+    setLibroDiarioMovimientosPorPeriodo((prev) => ({ ...prev, [periodoId]: data || [] }));
+    return data || [];
+  }, []);
+
+  const addMovimientoLibroDiario = useCallback(async (periodoId, campos) => {
+    const { data, error } = await supabase
+      .from('libro_diario_movimientos')
+      .insert({ periodo_id: periodoId, ...campos })
+      .select()
+      .single();
+    if (error) throw error;
+    setLibroDiarioMovimientosPorPeriodo((prev) => ({
+      ...prev,
+      [periodoId]: [...(prev[periodoId] || []), data],
+    }));
+    return data;
+  }, []);
+
+  const updateMovimientoLibroDiario = useCallback(async (periodoId, movId, campos) => {
+    const { data, error } = await supabase
+      .from('libro_diario_movimientos')
+      .update(campos)
+      .eq('id', movId)
+      .select()
+      .single();
+    if (error) throw error;
+    setLibroDiarioMovimientosPorPeriodo((prev) => ({
+      ...prev,
+      [periodoId]: (prev[periodoId] || []).map((m) => (m.id === movId ? data : m)),
+    }));
+    return data;
+  }, []);
+
+  const deleteMovimientoLibroDiario = useCallback(async (periodoId, movId) => {
+    const { error } = await supabase.from('libro_diario_movimientos').delete().eq('id', movId);
+    if (error) throw error;
+    setLibroDiarioMovimientosPorPeriodo((prev) => ({
+      ...prev,
+      [periodoId]: (prev[periodoId] || []).filter((m) => m.id !== movId),
+    }));
+  }, []);
+
+  // Inserción masiva, usada por el importador de bancos
+  const addMovimientosLibroDiarioBulk = useCallback(async (periodoId, movimientosArray) => {
+    if (movimientosArray.length === 0) return [];
+    const payload = movimientosArray.map((m) => ({ periodo_id: periodoId, ...m }));
+    const { data, error } = await supabase.from('libro_diario_movimientos').insert(payload).select();
+    if (error) throw error;
+    setLibroDiarioMovimientosPorPeriodo((prev) => ({
+      ...prev,
+      [periodoId]: [...(prev[periodoId] || []), ...data],
+    }));
+    return data;
   }, []);
 
   const addCuentaServicio = useCallback(async (consorcioId, servicioId, alias) => {
@@ -447,6 +633,9 @@ export function useAppData() {
     consorcios,
     movimientos,
     pagosParciales,
+    unidades,
+    libroDiarioPeriodos,
+    libroDiarioMovimientosPorPeriodo,
     ultimaActualizacionGlobal,
     recargar: cargarTodo,
     addServicio,
@@ -457,6 +646,17 @@ export function useAppData() {
     updateProveedor,
     addConsorcio,
     updateConsorcio,
+    addUnidad,
+    updateUnidad,
+    deleteUnidad,
+    addPeriodoLibroDiario,
+    updatePeriodoLibroDiario,
+    deletePeriodoLibroDiario,
+    cargarMovimientosLibroDiario,
+    addMovimientoLibroDiario,
+    addMovimientosLibroDiarioBulk,
+    updateMovimientoLibroDiario,
+    deleteMovimientoLibroDiario,
     addCuentaServicio,
     deleteCuentaServicio,
     addCuentaProveedor,

@@ -13,6 +13,9 @@ export default function ConsorciosView({
   onDeleteCuentaServicio,
   onAddCuentaProveedor,
   onDeleteCuentaProveedor,
+  onAddUnidad,
+  onUpdateUnidad,
+  onDeleteUnidad,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [mostrarModalNuevo, setMostrarModalNuevo] = useState(false);
@@ -51,6 +54,9 @@ export default function ConsorciosView({
           onDeleteCuentaServicio={onDeleteCuentaServicio}
           onAddCuentaProveedor={onAddCuentaProveedor}
           onDeleteCuentaProveedor={onDeleteCuentaProveedor}
+          onAddUnidad={onAddUnidad}
+          onUpdateUnidad={onUpdateUnidad}
+          onDeleteUnidad={onDeleteUnidad}
         />
       </div>
     </section>

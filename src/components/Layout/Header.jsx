@@ -3,6 +3,7 @@ export default function Header({ activeTab, onSwitchTab, userEmail, onLogout }) 
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
     { id: 'consorcios', label: 'Consorcios', icon: 'fa-building' },
     { id: 'catalogos', label: 'Catálogos', icon: 'fa-list-check' },
+    { id: 'libro-diario', label: 'Libro Diario', icon: 'fa-book' },
   ];
 
   return (

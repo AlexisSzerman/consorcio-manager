@@ -4,6 +4,7 @@ import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import ConsorciosView from './components/Consorcios/ConsorciosView';
 import CatalogosView from './components/Catalogos/CatalogosView';
+import LibroDiarioView from './components/LibroDiario/LibroDiarioView';
 import LoadingBuilding from './components/LoadingBuilding';
 import { useAppData } from './hooks/useAppData';
 import { useAuth } from './hooks/useAuth';
@@ -43,6 +44,9 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     consorcios,
     movimientos,
     pagosParciales,
+    unidades,
+    libroDiarioPeriodos,
+    libroDiarioMovimientosPorPeriodo,
     ultimaActualizacionGlobal,
     addServicio,
     deleteServicio,
@@ -52,6 +56,17 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     updateProveedor,
     addConsorcio,
     updateConsorcio,
+    addUnidad,
+    updateUnidad,
+    deleteUnidad,
+    addPeriodoLibroDiario,
+    updatePeriodoLibroDiario,
+    deletePeriodoLibroDiario,
+    cargarMovimientosLibroDiario,
+    addMovimientoLibroDiario,
+    addMovimientosLibroDiarioBulk,
+    updateMovimientoLibroDiario,
+    deleteMovimientoLibroDiario,
     addCuentaServicio,
     deleteCuentaServicio,
     addCuentaProveedor,
@@ -128,6 +143,26 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
             onDeleteCuentaServicio={deleteCuentaServicio}
             onAddCuentaProveedor={addCuentaProveedor}
             onDeleteCuentaProveedor={deleteCuentaProveedor}
+            onAddUnidad={addUnidad}
+            onUpdateUnidad={updateUnidad}
+            onDeleteUnidad={deleteUnidad}
+          />
+        )}
+
+        {activeTab === 'libro-diario' && (
+          <LibroDiarioView
+            consorcios={consorcios}
+            periodos={libroDiarioPeriodos}
+            movimientosPorPeriodo={libroDiarioMovimientosPorPeriodo}
+            proveedores={proveedores}
+            onCargarMovimientos={cargarMovimientosLibroDiario}
+            onAddPeriodo={addPeriodoLibroDiario}
+            onUpdatePeriodo={updatePeriodoLibroDiario}
+            onDeletePeriodo={deletePeriodoLibroDiario}
+            onAddMovimiento={addMovimientoLibroDiario}
+            onAddMovimientosBulk={addMovimientosLibroDiarioBulk}
+            onUpdateMovimiento={updateMovimientoLibroDiario}
+            onDeleteMovimiento={deleteMovimientoLibroDiario}
           />
         )}
 

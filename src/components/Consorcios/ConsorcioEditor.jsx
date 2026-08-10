@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import UnidadesSection from './UnidadesSection';
 
 function SelectorNuevaCuenta({ catalogo, placeholder, onAgregar }) {
   const [itemId, setItemId] = useState('');
@@ -78,6 +79,9 @@ export default function ConsorcioEditor({
   onDeleteCuentaServicio,
   onAddCuentaProveedor,
   onDeleteCuentaProveedor,
+  onAddUnidad,
+  onUpdateUnidad,
+  onDeleteUnidad,
 }) {
   const [form, setForm] = useState(null);
   const [guardando, setGuardando] = useState(false);
@@ -237,6 +241,15 @@ export default function ConsorcioEditor({
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="pt-4 border-t">
+          <UnidadesSection
+            consorcio={consorcio}
+            onAddUnidad={onAddUnidad}
+            onUpdateUnidad={onUpdateUnidad}
+            onDeleteUnidad={onDeleteUnidad}
+          />
         </div>
       </div>
     </div>
