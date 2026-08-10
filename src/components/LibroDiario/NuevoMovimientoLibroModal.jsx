@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { hoyStr } from '../../utils/dateHelpers';
 
-export default function NuevoMovimientoLibroModal({ proveedores, unidades, onCrear, onClose }) {
+export default function NuevoMovimientoLibroModal({ proveedores, servicios, unidades, onCrear, onClose }) {
   const [fecha, setFecha] = useState(hoyStr());
   const [detalle, setDetalle] = useState('');
   const [tipo, setTipo] = useState('egreso');
   const [monto, setMonto] = useState('');
   const [categoria, setCategoria] = useState('sin_clasificar');
   const [proveedorId, setProveedorId] = useState('');
+  const [servicioId, setServicioId] = useState('');
   const [unidadId, setUnidadId] = useState('');
   const [textoLibre, setTextoLibre] = useState('');
   const [creando, setCreando] = useState(false);
@@ -24,6 +25,7 @@ export default function NuevoMovimientoLibroModal({ proveedores, unidades, onCre
         monto: montoNum,
         categoria,
         proveedor_id: categoria === 'proveedor' ? proveedorId || null : null,
+        servicio_id: categoria === 'servicio' ? servicioId || null : null,
         unidad_id: categoria === 'unidad' ? unidadId || null : null,
         texto_original_banco: categoria === 'sin_clasificar' ? textoLibre.trim() || null : null,
         confirmado: true,
@@ -111,6 +113,7 @@ export default function NuevoMovimientoLibroModal({ proveedores, unidades, onCre
           >
             <option value="sin_clasificar">Sin clasificar / otro</option>
             <option value="proveedor">Proveedor</option>
+            <option value="servicio">Servicio</option>
             <option value="unidad">Unidad</option>
             <option value="gastos_bancarios">Gastos Bancarios / Impuestos</option>
           </select>
@@ -130,6 +133,21 @@ export default function NuevoMovimientoLibroModal({ proveedores, unidades, onCre
             ))}
           </select>
         )}
+
+        {categoria === 'servicio' && (
+  <select
+    value={servicioId}
+    onChange={(e) => setServicioId(e.target.value)}
+    className="w-full border rounded-lg p-2 text-sm bg-white"
+  >
+    <option value="">Elegir servicio...</option>
+    {servicios.map((s) => (
+      <option key={s.id} value={s.id}>
+        {s.nombre}
+      </option>
+    ))}
+  </select>
+)}
         {categoria === 'unidad' && (
           <select
             value={unidadId}

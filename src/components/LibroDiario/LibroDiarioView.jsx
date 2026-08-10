@@ -24,6 +24,8 @@ export default function LibroDiarioView({
   periodos,
   movimientosPorPeriodo,
   proveedores,
+  servicios,
+  unidades,
   onCargarMovimientos,
   onAddPeriodo,
   onUpdatePeriodo,
@@ -68,6 +70,7 @@ export default function LibroDiarioView({
     abrirPeriodo(nuevo);
   }
 
+
   if (periodoSeleccionado) {
     return (
       <PeriodoDetalle
@@ -75,6 +78,7 @@ export default function LibroDiarioView({
         consorcioNombre={consorcioActual?.nombre}
         movimientos={movimientosPorPeriodo[periodoSeleccionado.id] || []}
         proveedores={proveedores}
+        servicios={servicios}
         unidades={consorcioActual?.unidades || []}
         onVolver={() => setPeriodoSeleccionadoId(null)}
         onUpdatePeriodo={onUpdatePeriodo}

@@ -9,6 +9,7 @@ export default function PeriodoDetalle({
   consorcioNombre,
   movimientos,
   proveedores,
+  servicios,
   unidades,
   onVolver,
   onUpdatePeriodo,
@@ -17,7 +18,9 @@ export default function PeriodoDetalle({
   onAddMovimientosBulk,
   onUpdateMovimiento,
   onDeleteMovimiento,
-}) {
+}) 
+
+{
   const [saldoInicial, setSaldoInicial] = useState(periodo.saldo_inicial_declarado ?? '');
   const [saldoFinal, setSaldoFinal] = useState(periodo.saldo_final_declarado ?? '');
   const [guardandoSaldos, setGuardandoSaldos] = useState(false);
@@ -37,21 +40,41 @@ export default function PeriodoDetalle({
   const finalNum = saldoFinal === '' ? null : Number(saldoFinal);
   const coincide = finalNum !== null && Math.abs(saldoCalculado - finalNum) < 0.01;
 
-  const CATEGORIA_LABELS = {
-    proveedor: 'Proveedores',
-    unidad: 'Unidades',
-    gastos_bancarios: 'Gastos Bancarios',
-    sin_clasificar: 'Sin clasificar',
-  };
+const CATEGORIA_LABELS = {
+  proveedor: 'Proveedores',
+  unidad: 'Unidades',
+  servicio: 'Servicios',
+  gastos_bancarios: 'Gastos Bancarios',
+  sin_clasificar: 'Sin clasificar',
+};
 
-  const desglosePorCategoria = ['proveedor', 'unidad', 'gastos_bancarios', 'sin_clasificar']
-    .map((cat) => {
-      const movsCategoria = movimientos.filter((m) => m.categoria === cat);
-      const ingresos = movsCategoria.filter((m) => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.monto), 0);
-      const egresos = movsCategoria.filter((m) => m.tipo === 'egreso').reduce((s, m) => s + Number(m.monto), 0);
-      return { categoria: cat, label: CATEGORIA_LABELS[cat], cantidad: movsCategoria.length, ingresos, egresos };
-    })
-    .filter((d) => d.cantidad > 0);
+const desglosePorCategoria = [
+  'proveedor',
+  'unidad',
+  'servicio',
+  'gastos_bancarios',
+  'sin_clasificar'
+]
+  .map((cat) => {
+    const movsCategoria = movimientos.filter((m) => m.categoria === cat);
+
+    const ingresos = movsCategoria
+      .filter((m) => m.tipo === 'ingreso')
+      .reduce((s, m) => s + Number(m.monto), 0);
+
+    const egresos = movsCategoria
+      .filter((m) => m.tipo === 'egreso')
+      .reduce((s, m) => s + Number(m.monto), 0);
+
+    return {
+      categoria: cat,
+      label: CATEGORIA_LABELS[cat],
+      cantidad: movsCategoria.length,
+      ingresos,
+      egresos,
+    };
+  })
+  .filter((d) => d.cantidad > 0);
 
   let corrido = inicialNum;
   const filasConSaldo = movimientosOrdenados.map((m) => {
@@ -125,6 +148,7 @@ export default function PeriodoDetalle({
     }
     if (m.categoria === 'gastos_bancarios') return 'Gastos Bancarios / Impuestos';
     return m.texto_original_banco || '-';
+ 
   }
 
   return (
@@ -234,7 +258,7 @@ export default function PeriodoDetalle({
           {desglosePorCategoria.length > 0 && (
           <div className="pt-3 border-t">
             <p className="text-xs font-bold text-slate-600 mb-2">Desglose por categoría</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {desglosePorCategoria.map((d) => (
                 <div key={d.categoria} className="bg-slate-50 rounded-lg p-3">
                   <p className="text-[10px] text-slate-400 uppercase font-semibold">
@@ -342,6 +366,7 @@ export default function PeriodoDetalle({
       {mostrarNuevoMov && (
         <NuevoMovimientoLibroModal
           proveedores={proveedores}
+          servicios={servicios}
           unidades={unidades}
           onCrear={(campos) => onAddMovimiento(periodo.id, campos)}
           onClose={() => setMostrarNuevoMov(false)}
@@ -352,6 +377,7 @@ export default function PeriodoDetalle({
         <EditarMovimientoLibroModal
           movimiento={movimientoEditando}
           proveedores={proveedores}
+          servicios={servicios}
           unidades={unidades}
           onGuardar={(movId, campos) => onUpdateMovimiento(periodo.id, movId, campos)}
           onClose={() => setMovimientoEditando(null)}
@@ -363,6 +389,7 @@ export default function PeriodoDetalle({
           periodo={periodo}
           movimientosExistentes={movimientos}
           proveedores={proveedores}
+          servicios={servicios}
           unidades={unidades}
           onImportar={manejarImportacion}
           onClose={() => setMostrarImportar(false)}

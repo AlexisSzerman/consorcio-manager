@@ -150,21 +150,25 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
         )}
 
         {activeTab === 'libro-diario' && (
-          <LibroDiarioView
-            consorcios={consorcios}
-            periodos={libroDiarioPeriodos}
-            movimientosPorPeriodo={libroDiarioMovimientosPorPeriodo}
-            proveedores={proveedores}
-            onCargarMovimientos={cargarMovimientosLibroDiario}
-            onAddPeriodo={addPeriodoLibroDiario}
-            onUpdatePeriodo={updatePeriodoLibroDiario}
-            onDeletePeriodo={deletePeriodoLibroDiario}
-            onAddMovimiento={addMovimientoLibroDiario}
-            onAddMovimientosBulk={addMovimientosLibroDiarioBulk}
-            onUpdateMovimiento={updateMovimientoLibroDiario}
-            onDeleteMovimiento={deleteMovimientoLibroDiario}
-          />
-        )}
+
+    <LibroDiarioView
+      consorcios={consorcios}
+      periodos={libroDiarioPeriodos}
+      movimientosPorPeriodo={libroDiarioMovimientosPorPeriodo}
+      proveedores={proveedores}
+      servicios={servicios}
+      unidades={unidades}
+      onCargarMovimientos={cargarMovimientosLibroDiario}
+      onAddPeriodo={addPeriodoLibroDiario}
+      onUpdatePeriodo={updatePeriodoLibroDiario}
+      onDeletePeriodo={deletePeriodoLibroDiario}
+      onAddMovimiento={addMovimientoLibroDiario}
+      onAddMovimientosBulk={addMovimientosLibroDiarioBulk}
+      onUpdateMovimiento={updateMovimientoLibroDiario}
+      onDeleteMovimiento={deleteMovimientoLibroDiario}
+    />
+  
+)}
 
         {activeTab === 'catalogos' && (
           <CatalogosView
