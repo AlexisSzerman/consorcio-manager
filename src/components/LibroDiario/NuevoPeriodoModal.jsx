@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const BANCOS_CONOCIDOS = ['ICBC', 'Banco Nación', 'Banco Galicia', 'Banco Santander', 'Otro'];
+const BANCOS_CONOCIDOS = ['ICBC', 'Banco Nación', 'Banco Galicia', 'Banco Santander', 'Otro','Banco Ciudad'];
 
 export default function NuevoPeriodoModal({ onCrear, onClose }) {
   const [periodo, setPeriodo] = useState('');

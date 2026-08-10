@@ -7,7 +7,22 @@ export default function ImportarBancoModal({ periodo, movimientosExistentes, pro
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
 
-  const perfil = PERFILES_BANCO[periodo.banco];
+  const bancoNormalizado = (periodo.banco || '')
+  .toString()
+  .trim()
+  .toUpperCase();
+
+const perfil =
+  PERFILES_BANCO[periodo.banco] ||
+  PERFILES_BANCO[bancoNormalizado] ||
+  PERFILES_BANCO[
+    bancoNormalizado.replace(/\s+/g, '_')
+  ] ||
+  (
+    bancoNormalizado.includes('CIUDAD')
+      ? PERFILES_BANCO.CIUDAD
+      : null
+  );
 
   function handleArchivo(e) {
     const file = e.target.files[0];
