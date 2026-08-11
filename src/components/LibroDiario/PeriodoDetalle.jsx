@@ -242,7 +242,7 @@ const desglosePorCategoria = [
         <div className="flex justify-between items-center pt-2 border-t">
           {finalNum === null ? (
             <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full font-bold">
-              <i className="fa-solid fa-clock mr-1"></i> Ingresá el saldo final para verificar
+              <i className="fa-solid fa-clock mr-1"></i> Ingresá el saldo inicial y final para verificar
             </span>
           ) : coincide ? (
             <span className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full font-bold">
@@ -291,11 +291,17 @@ const desglosePorCategoria = [
           <h3 className="font-bold text-sm text-slate-700">Movimientos ({movimientos.length})</h3>
           <div className="flex gap-2">
             <button
-              onClick={() => setMostrarImportar(true)}
-              className="text-xs bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold"
-            >
-              <i className="fa-solid fa-file-import mr-1"></i> Importar del banco
-            </button>
+  onClick={() => setMostrarImportar(true)}
+  disabled={periodo.saldo_inicial_declarado == null}
+  title={
+    periodo.saldo_inicial_declarado == null
+      ? 'Guardá el saldo inicial antes de importar movimientos'
+      : ''
+  }
+  className="text-xs bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  <i className="fa-solid fa-file-import mr-1"></i> Importar del banco
+</button>
             <button
               onClick={() => setMostrarNuevoMov(true)}
               className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg font-semibold"

@@ -29,30 +29,41 @@ const perfil =
     if (!file) return;
     setError(null);
     const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const parseadas = perfil.parser(evt.target.result);
-        const conSugerencias = parseadas.map((m) => {
-          let categoria = m.categoriaSugerida;
-          let candidatoId = null;
-          let candidatos = [];
-          if (categoria !== 'gastos_bancarios' && m.texto_original_banco) {
-            candidatos = buscarCandidatos(m.texto_original_banco, proveedores, unidades);
-            if (candidatos[0] && candidatos[0].score >= 0.7) {
-              categoria = candidatos[0].tipo;
-              candidatoId = candidatos[0].id;
-            }
-          }
-          const duplicado = movimientosExistentes.some(
-            (ex) => ex.fecha === m.fecha && Number(ex.monto) === m.monto && ex.tipo === m.tipo && ex.detalle === m.detalle
-          );
-          return { ...m, categoria, candidatoId, candidatos, incluir: !duplicado, duplicado };
-        });
-        setFilas(conSugerencias);
-      } catch (err) {
-        setError('No se pudo leer el archivo: ' + err.message);
+reader.onload = (evt) => {
+  try {
+    const parseadas = perfil.parser(evt.target.result);
+
+    const enOrdenCronologico = [...parseadas].sort((a, b) => a.orden_original - b.orden_original);
+    const marcadas = marcarAnteriorAlSaldoInicial(enOrdenCronologico, periodo.saldo_inicial_declarado);
+
+    const conSugerencias = marcadas.map((m) => {
+      let categoria = m.categoriaSugerida;
+      let candidatoId = null;
+      let candidatos = [];
+      if (categoria !== 'gastos_bancarios' && m.texto_original_banco) {
+        candidatos = buscarCandidatos(m.texto_original_banco, proveedores, unidades);
+        if (candidatos[0] && candidatos[0].score >= 0.7) {
+          categoria = candidatos[0].tipo;
+          candidatoId = candidatos[0].id;
+        }
       }
-    };
+      const duplicado = movimientosExistentes.some(
+        (ex) => ex.fecha === m.fecha && Number(ex.monto) === m.monto && ex.tipo === m.tipo && ex.detalle === m.detalle
+      );
+      return {
+        ...m,
+        categoria,
+        candidatoId,
+        candidatos,
+        incluir: !duplicado && !m.anteriorAlSaldoInicial,
+        duplicado,
+      };
+    });
+    setFilas(conSugerencias);
+  } catch (err) {
+    setError('No se pudo leer el archivo: ' + err.message);
+  }
+};
     reader.readAsText(file, 'utf-8');
   }
 
@@ -173,6 +184,9 @@ const perfil =
                         <div>{f.detalle}</div>
                         {f.texto_original_banco && <div className="text-slate-400">{f.texto_original_banco}</div>}
                         {f.duplicado && <div className="text-amber-600 font-semibold">Posible duplicado</div>}
+{f.anteriorAlSaldoInicial && (
+  <div className="text-purple-600 font-semibold">Anterior al saldo inicial del período</div>
+)}
                       </td>
                       <td className="p-2">
                         <select
