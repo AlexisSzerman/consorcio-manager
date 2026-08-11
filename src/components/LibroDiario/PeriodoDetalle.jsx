@@ -28,6 +28,7 @@ export default function PeriodoDetalle({
   const [mostrarNuevoMov, setMostrarNuevoMov] = useState(false);
   const [mostrarImportar, setMostrarImportar] = useState(false);
   const [movimientoEditando, setMovimientoEditando] = useState(null);
+  const [categoriaFiltro, setCategoriaFiltro] = useState(null);
 
   const movimientosOrdenados = [...movimientos].sort(
     (a, b) => a.fecha.localeCompare(b.fecha) || (a.orden_original || 0) - (b.orden_original || 0)
@@ -48,6 +49,16 @@ const CATEGORIA_LABELS = {
   sin_clasificar: 'Sin clasificar',
 };
 
+// Sentido de movimiento "esperado" para cada categoría. Un movimiento que va
+// en contra de esto no es necesariamente un error, pero vale la pena revisarlo
+// (ej: un egreso en "unidad" suele ser una devolución o una mala clasificación).
+const CATEGORIA_TIPO_ESPERADO = {
+  proveedor: 'egreso',
+  unidad: 'ingreso',
+  gastos_bancarios: 'egreso',
+  // servicio y sin_clasificar pueden ir en cualquier sentido según el caso
+};
+
 const desglosePorCategoria = [
   'proveedor',
   'unidad',
@@ -66,12 +77,18 @@ const desglosePorCategoria = [
       .filter((m) => m.tipo === 'egreso')
       .reduce((s, m) => s + Number(m.monto), 0);
 
+    const tipoEsperado = CATEGORIA_TIPO_ESPERADO[cat];
+    const inusuales = tipoEsperado
+      ? movsCategoria.filter((m) => m.tipo !== tipoEsperado)
+      : [];
+
     return {
       categoria: cat,
       label: CATEGORIA_LABELS[cat],
       cantidad: movsCategoria.length,
       ingresos,
       egresos,
+      inusualesCount: inusuales.length,
     };
   })
   .filter((d) => d.cantidad > 0);
@@ -79,8 +96,18 @@ const desglosePorCategoria = [
   let corrido = inicialNum;
   const filasConSaldo = movimientosOrdenados.map((m) => {
     corrido += m.tipo === 'ingreso' ? Number(m.monto) : -Number(m.monto);
-    return { ...m, saldoCorridoCalculado: corrido };
+    const tipoEsperado = CATEGORIA_TIPO_ESPERADO[m.categoria];
+    const esInusual = tipoEsperado ? m.tipo !== tipoEsperado : false;
+    return { ...m, saldoCorridoCalculado: corrido, esInusual };
   });
+
+  const filasVisibles = categoriaFiltro
+    ? filasConSaldo.filter((m) => m.categoria === categoriaFiltro)
+    : filasConSaldo;
+
+  function alternarFiltroCategoria(cat) {
+    setCategoriaFiltro((actual) => (actual === cat ? null : cat));
+  }
 
   async function guardarSaldos() {
     setGuardandoSaldos(true);
@@ -257,21 +284,58 @@ const desglosePorCategoria = [
 
           {desglosePorCategoria.length > 0 && (
           <div className="pt-3 border-t">
-            <p className="text-xs font-bold text-slate-600 mb-2">Desglose por categoría</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-slate-600">Desglose por categoría</p>
+              {categoriaFiltro && (
+                <button
+                  onClick={() => setCategoriaFiltro(null)}
+                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold"
+                >
+                  <i className="fa-solid fa-xmark mr-1"></i> Quitar filtro
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {desglosePorCategoria.map((d) => (
-                <div key={d.categoria} className="bg-slate-50 rounded-lg p-3">
-                  <p className="text-[10px] text-slate-400 uppercase font-semibold">
-                    {d.label} <span className="text-slate-300">({d.cantidad})</span>
-                  </p>
-                  {d.ingresos > 0 && (
-                    <p className="text-xs font-bold text-emerald-600">+{formatMonto(d.ingresos)}</p>
-                  )}
-                  {d.egresos > 0 && (
-                    <p className="text-xs font-bold text-red-600">-{formatMonto(d.egresos)}</p>
-                  )}
-                </div>
-              ))}
+              {desglosePorCategoria.map((d) => {
+                const activa = categoriaFiltro === d.categoria;
+                return (
+                  <button
+                    key={d.categoria}
+                    type="button"
+                    onClick={() => alternarFiltroCategoria(d.categoria)}
+                    title={
+                      d.inusualesCount > 0
+                        ? `${d.inusualesCount} movimiento${d.inusualesCount === 1 ? '' : 's'} en un sentido inusual para esta categoría`
+                        : 'Ver movimientos de esta categoría'
+                    }
+                    className={`text-left bg-slate-50 rounded-lg p-3 border transition-colors ${
+                      activa
+                        ? 'border-indigo-400 ring-2 ring-indigo-200 bg-indigo-50'
+                        : 'border-transparent hover:border-slate-300'
+                    }`}
+                  >
+                    <p className="text-[10px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+                      {d.label} <span className="text-slate-300">({d.cantidad})</span>
+                      {d.inusualesCount > 0 && (
+                        <span className="text-amber-500">
+                          <i className="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+                      )}
+                    </p>
+                    {d.ingresos > 0 && (
+                      <p className="text-xs font-bold text-emerald-600">+{formatMonto(d.ingresos)}</p>
+                    )}
+                    {d.egresos > 0 && (
+                      <p className="text-xs font-bold text-red-600">-{formatMonto(d.egresos)}</p>
+                    )}
+                    {d.inusualesCount > 0 && (
+                      <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                        {d.inusualesCount} inusual{d.inusualesCount === 1 ? '' : 'es'}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -287,8 +351,15 @@ const desglosePorCategoria = [
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-          <h3 className="font-bold text-sm text-slate-700">Movimientos ({movimientos.length})</h3>
+        <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-wrap gap-2">
+          <h3 className="font-bold text-sm text-slate-700">
+            Movimientos ({filasVisibles.length}{categoriaFiltro ? ` de ${movimientos.length}` : ''})
+            {categoriaFiltro && (
+              <span className="ml-2 text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                {CATEGORIA_LABELS[categoriaFiltro]}
+              </span>
+            )}
+          </h3>
           <div className="flex gap-2">
             <button
   onClick={() => setMostrarImportar(true)}
@@ -325,11 +396,22 @@ const desglosePorCategoria = [
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filasConSaldo.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-50">
+              {filasVisibles.map((m) => (
+                <tr
+                  key={m.id}
+                  className={`hover:bg-slate-50 ${m.esInusual ? 'bg-amber-50' : ''}`}
+                >
                   <td className="p-3 whitespace-nowrap">{formatFechaDDMMYYYY(m.fecha)}</td>
                   <td className="p-3">
-                    <div>{nombreContraparte(m)}</div>
+                    <div className="flex items-center gap-1.5">
+                      {m.esInusual && (
+                        <i
+                          className="fa-solid fa-triangle-exclamation text-amber-500 text-xs"
+                          title={`Egreso/ingreso inusual para la categoría "${CATEGORIA_LABELS[m.categoria]}"`}
+                        ></i>
+                      )}
+                      <span>{nombreContraparte(m)}</span>
+                    </div>
                     {!m.confirmado && m.categoria !== 'gastos_bancarios' && (
                       <span className="text-[10px] text-amber-600 font-semibold">Sin confirmar</span>
                     )}
@@ -357,10 +439,12 @@ const desglosePorCategoria = [
                   </td>
                 </tr>
               ))}
-              {movimientos.length === 0 && (
+              {filasVisibles.length === 0 && (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 text-sm">
-                    Todavía no hay movimientos en este período.
+                    {categoriaFiltro
+                      ? 'No hay movimientos de esta categoría.'
+                      : 'Todavía no hay movimientos en este período.'}
                   </td>
                 </tr>
               )}
