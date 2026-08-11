@@ -236,20 +236,21 @@ export default function EditarMovimientoLibroModal({
           </label>
 
           <select
-            value={unidadId}
-            onChange={(e) => setUnidadId(e.target.value)}
-            className="w-full border rounded-lg p-2 text-sm bg-white"
-          >
-            <option value="">
-              Elegir unidad...
-            </option>
-
-            {unidades.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.numero_unidad} - {u.propietario_nombre}
-              </option>
-            ))}
-          </select>
+  value={unidadId}
+  onChange={(e) => setUnidadId(e.target.value)}
+  className="w-full border rounded-lg p-2 text-sm bg-white"
+>
+  <option value="">
+    Elegir unidad...
+  </option>
+  {[...unidades]
+    .sort((a, b) => a.propietario_nombre.localeCompare(b.propietario_nombre, 'es'))
+    .map((u) => (
+      <option key={u.id} value={u.id}>
+        {u.numero_unidad} - {u.propietario_nombre}
+      </option>
+    ))}
+</select>
         </div>
       )}
 
