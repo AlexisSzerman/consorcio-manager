@@ -321,3 +321,33 @@ function marcarAnteriorAlSaldoInicial(movimientosOrdenCronologico, saldoInicialD
     anteriorAlSaldoInicial: i < indiceCorte,
   }));
 }
+
+function marcarAnteriorAlSaldoInicial(movimientosOrdenCronologico, saldoInicialDeclarado) {
+  if (saldoInicialDeclarado == null) {
+    return movimientosOrdenCronologico.map((m) => ({ ...m, anteriorAlSaldoInicial: false }));
+  }
+
+  let indiceCorte = -1;
+
+  for (let i = 0; i < movimientosOrdenCronologico.length; i++) {
+    const m = movimientosOrdenCronologico[i];
+    if (m.saldo_informado_banco == null) continue;
+
+    const delta = m.tipo === 'ingreso' ? m.monto : -m.monto;
+    const saldoAntes = m.saldo_informado_banco - delta;
+
+    if (Math.abs(saldoAntes - saldoInicialDeclarado) < 0.5) {
+      indiceCorte = i;
+      break;
+    }
+  }
+
+  if (indiceCorte === -1) {
+    return movimientosOrdenCronologico.map((m) => ({ ...m, anteriorAlSaldoInicial: false }));
+  }
+
+  return movimientosOrdenCronologico.map((m, i) => ({
+    ...m,
+    anteriorAlSaldoInicial: i < indiceCorte,
+  }));
+}

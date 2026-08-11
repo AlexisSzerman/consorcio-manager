@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PERFILES_BANCO, buscarCandidatos } from '../../utils/importadorBancos';
+import { PERFILES_BANCO, buscarCandidatos, marcarAnteriorAlSaldoInicial } from '../../utils/importadorBancos';
 import { formatMonto, formatFechaDDMMYYYY } from '../../utils/dateHelpers';
 
 export default function ImportarBancoModal({ periodo, movimientosExistentes, proveedores, unidades, onImportar, onClose }) {
@@ -29,41 +29,41 @@ const perfil =
     if (!file) return;
     setError(null);
     const reader = new FileReader();
-reader.onload = (evt) => {
-  try {
-    const parseadas = perfil.parser(evt.target.result);
+    reader.onload = (evt) => {
+      try {
+        const parseadas = perfil.parser(evt.target.result);
 
-    const enOrdenCronologico = [...parseadas].sort((a, b) => a.orden_original - b.orden_original);
-    const marcadas = marcarAnteriorAlSaldoInicial(enOrdenCronologico, periodo.saldo_inicial_declarado);
+        const enOrdenCronologico = [...parseadas].sort((a, b) => a.orden_original - b.orden_original);
+        const marcadas = marcarAnteriorAlSaldoInicial(enOrdenCronologico, periodo.saldo_inicial_declarado);
 
-    const conSugerencias = marcadas.map((m) => {
-      let categoria = m.categoriaSugerida;
-      let candidatoId = null;
-      let candidatos = [];
-      if (categoria !== 'gastos_bancarios' && m.texto_original_banco) {
-        candidatos = buscarCandidatos(m.texto_original_banco, proveedores, unidades);
-        if (candidatos[0] && candidatos[0].score >= 0.7) {
-          categoria = candidatos[0].tipo;
-          candidatoId = candidatos[0].id;
-        }
+        const conSugerencias = marcadas.map((m) => {
+          let categoria = m.categoriaSugerida;
+          let candidatoId = null;
+          let candidatos = [];
+          if (categoria !== 'gastos_bancarios' && m.texto_original_banco) {
+            candidatos = buscarCandidatos(m.texto_original_banco, proveedores, unidades);
+            if (candidatos[0] && candidatos[0].score >= 0.7) {
+              categoria = candidatos[0].tipo;
+              candidatoId = candidatos[0].id;
+            }
+          }
+          const duplicado = movimientosExistentes.some(
+            (ex) => ex.fecha === m.fecha && Number(ex.monto) === m.monto && ex.tipo === m.tipo && ex.detalle === m.detalle
+          );
+          return {
+            ...m,
+            categoria,
+            candidatoId,
+            candidatos,
+            incluir: !duplicado && !m.anteriorAlSaldoInicial,
+            duplicado,
+          };
+        });
+        setFilas(conSugerencias);
+      } catch (err) {
+        setError('No se pudo leer el archivo: ' + err.message);
       }
-      const duplicado = movimientosExistentes.some(
-        (ex) => ex.fecha === m.fecha && Number(ex.monto) === m.monto && ex.tipo === m.tipo && ex.detalle === m.detalle
-      );
-      return {
-        ...m,
-        categoria,
-        candidatoId,
-        candidatos,
-        incluir: !duplicado && !m.anteriorAlSaldoInicial,
-        duplicado,
-      };
-    });
-    setFilas(conSugerencias);
-  } catch (err) {
-    setError('No se pudo leer el archivo: ' + err.message);
-  }
-};
+    };
     reader.readAsText(file, 'utf-8');
   }
 
@@ -171,7 +171,7 @@ reader.onload = (evt) => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filas.map((f, idx) => (
-                    <tr key={idx} className={f.duplicado ? 'bg-slate-50 text-slate-400' : ''}>
+                    <tr key={idx} className={f.duplicado || f.anteriorAlSaldoInicial ? 'bg-slate-50 text-slate-400' : ''}>
                       <td className="p-2 text-center">
                         <input
                           type="checkbox"
@@ -184,9 +184,9 @@ reader.onload = (evt) => {
                         <div>{f.detalle}</div>
                         {f.texto_original_banco && <div className="text-slate-400">{f.texto_original_banco}</div>}
                         {f.duplicado && <div className="text-amber-600 font-semibold">Posible duplicado</div>}
-{f.anteriorAlSaldoInicial && (
-  <div className="text-purple-600 font-semibold">Anterior al saldo inicial del período</div>
-)}
+                        {f.anteriorAlSaldoInicial && (
+                          <div className="text-purple-600 font-semibold">Anterior al saldo inicial del período</div>
+                        )}
                       </td>
                       <td className="p-2">
                         <select
