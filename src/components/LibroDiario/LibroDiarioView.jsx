@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PeriodoDetalle from './PeriodoDetalle';
 import NuevoPeriodoModal from './NuevoPeriodoModal';
+import ExportarLibroDiarioBoton from './ExportarLibroDiarioBoton';
 
 const ESTADO_INFO = {
   ok: { label: 'Coincide', color: 'bg-emerald-100 text-emerald-800', icon: 'fa-circle-check' },
@@ -110,6 +111,13 @@ export default function LibroDiarioView({
               </option>
             ))}
           </select>
+            <ExportarLibroDiarioBoton
+    periodos={periodosDelConsorcio}
+    movimientosPorPeriodo={movimientosPorPeriodo}
+    proveedores={proveedores}
+    servicios={servicios}
+    unidades={consorcioActual?.unidades || []}
+  />
           <button
             onClick={() => setMostrarNuevoPeriodo(true)}
             disabled={!consorcioId}
