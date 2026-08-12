@@ -24,11 +24,14 @@ export default function ImportarBancoModal({
     .trim()
     .toUpperCase();
 
-  const perfil =
-    PERFILES_BANCO[periodo.banco] ||
-    PERFILES_BANCO[bancoNormalizado] ||
-    PERFILES_BANCO[bancoNormalizado.replace(/\s+/g, "_")] ||
-    (bancoNormalizado.includes("CIUDAD") ? PERFILES_BANCO.CIUDAD : null);
+const perfil =
+  PERFILES_BANCO[periodo.banco] ||
+  PERFILES_BANCO[bancoNormalizado] ||
+  PERFILES_BANCO[bancoNormalizado.replace(/\s+/g, "_")] ||
+  Object.entries(PERFILES_BANCO).find(([clave]) =>
+    bancoNormalizado.includes(clave)
+  )?.[1] ||
+  null;
 
   function handleArchivo(e) {
     const file = e.target.files[0];
