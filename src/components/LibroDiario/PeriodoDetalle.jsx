@@ -31,6 +31,17 @@ export default function PeriodoDetalle({
   const [mostrarImportar, setMostrarImportar] = useState(false);
   const [movimientoEditando, setMovimientoEditando] = useState(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState(null);
+  const [sortBy, setSortBy] = useState('fecha');
+const [sortDir, setSortDir] = useState('asc');
+
+function toggleSort(campo) {
+  if (sortBy === campo) {
+    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+  } else {
+    setSortBy(campo);
+    setSortDir('asc');
+  }
+}
 
   const movimientosOrdenados = [...movimientos].sort(
     (a, b) =>
@@ -114,9 +125,31 @@ export default function PeriodoDetalle({
     return { ...m, saldoCorridoCalculado: corrido, esInusual };
   });
 
-  const filasVisibles = categoriaFiltro
-    ? filasConSaldo.filter((m) => m.categoria === categoriaFiltro)
-    : filasConSaldo;
+const filasVisibles = categoriaFiltro
+  ? filasConSaldo.filter((m) => m.categoria === categoriaFiltro)
+  : filasConSaldo;
+
+const filasParaMostrar = [...filasVisibles].sort((a, b) => {
+  let cmp = 0;
+  switch (sortBy) {
+    case 'contraparte':
+      cmp = nombreContraparte(a).localeCompare(nombreContraparte(b), 'es');
+      break;
+    case 'detalle':
+      cmp = (a.detalle || '').localeCompare(b.detalle || '', 'es');
+      break;
+    case 'ingreso':
+      cmp = (a.tipo === 'ingreso' ? Number(a.monto) : 0) - (b.tipo === 'ingreso' ? Number(b.monto) : 0);
+      break;
+    case 'egreso':
+      cmp = (a.tipo === 'egreso' ? Number(a.monto) : 0) - (b.tipo === 'egreso' ? Number(b.monto) : 0);
+      break;
+    default:
+      cmp = a.fecha.localeCompare(b.fecha) || (a.orden_original || 0) - (b.orden_original || 0);
+  }
+  return sortDir === 'asc' ? cmp : -cmp;
+});
+
 
   function alternarFiltroCategoria(cat) {
     setCategoriaFiltro((actual) => (actual === cat ? null : cat));
@@ -454,18 +487,28 @@ export default function PeriodoDetalle({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100 text-slate-600 uppercase text-xs font-semibold">
-              <tr>
-                <th className="p-3">Fecha</th>
-                <th className="p-3">Proveedor / Unidad</th>
-                <th className="p-3">Detalle</th>
-                <th className="p-3 text-right">Ingreso</th>
-                <th className="p-3 text-right">Egreso</th>
-                <th className="p-3 text-right">Saldo</th>
-                <th className="p-3 text-center">Acciones</th>
-              </tr>
-            </thead>
+  <tr>
+    <th className="p-3 cursor-pointer select-none" onClick={() => toggleSort('fecha')}>
+      Fecha {sortBy === 'fecha' && <i className={`fa-solid fa-caret-${sortDir === 'asc' ? 'up' : 'down'}`}></i>}
+    </th>
+    <th className="p-3 cursor-pointer select-none" onClick={() => toggleSort('contraparte')}>
+      Proveedor / Unidad {sortBy === 'contraparte' && <i className={`fa-solid fa-caret-${sortDir === 'asc' ? 'up' : 'down'}`}></i>}
+    </th>
+    <th className="p-3 cursor-pointer select-none" onClick={() => toggleSort('detalle')}>
+      Detalle {sortBy === 'detalle' && <i className={`fa-solid fa-caret-${sortDir === 'asc' ? 'up' : 'down'}`}></i>}
+    </th>
+    <th className="p-3 text-right cursor-pointer select-none" onClick={() => toggleSort('ingreso')}>
+      Ingreso {sortBy === 'ingreso' && <i className={`fa-solid fa-caret-${sortDir === 'asc' ? 'up' : 'down'}`}></i>}
+    </th>
+    <th className="p-3 text-right cursor-pointer select-none" onClick={() => toggleSort('egreso')}>
+      Egreso {sortBy === 'egreso' && <i className={`fa-solid fa-caret-${sortDir === 'asc' ? 'up' : 'down'}`}></i>}
+    </th>
+    <th className="p-3 text-right">Saldo</th>
+    <th className="p-3 text-center">Acciones</th>
+  </tr>
+</thead>
             <tbody className="divide-y divide-slate-100">
-              {filasVisibles.map((m) => (
+              {filasParaMostrar.map((m) => (
                 <tr
                   key={m.id}
                   className={`hover:bg-slate-50 ${m.esInusual ? "bg-amber-50" : ""}`}

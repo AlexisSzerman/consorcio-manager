@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatMonto, formatFechaDDMMYYYY } from '../../utils/dateHelpers';
 
-export default function ReconciliacionModal({ factura, candidatos, pendiente, onConfirmar, onClose }) {
+export default function ReconciliacionModal({ factura, candidatos, pendiente, onConfirmar, onDescartar, onClose }) {
   const [candidatoElegido, setCandidatoElegido] = useState(null);
   const [monto, setMonto] = useState('');
   const [guardando, setGuardando] = useState(false);
+
+
+  useEffect(() => {
+    if (candidatos.length === 0 && !candidatoElegido) {
+      onClose();
+    }
+  }, [candidatos.length, candidatoElegido, onClose]);
+
 
   function elegir(candidato) {
     setCandidatoElegido(candidato);
@@ -52,17 +60,24 @@ export default function ReconciliacionModal({ factura, candidatos, pendiente, on
             </p>
             <div className="divide-y divide-slate-100 border rounded-lg">
               {candidatos.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => elegir(c)}
-                  className="w-full text-left p-3 hover:bg-slate-50 flex justify-between items-center"
-                >
-                  <div>
+                <div key={c.id} className="flex items-center justify-between p-3 hover:bg-slate-50">
+                  <button onClick={() => elegir(c)} className="text-left flex-1">
                     <p className="text-sm text-slate-800">{formatFechaDDMMYYYY(c.fecha)}</p>
                     <p className="text-xs text-slate-400 max-w-xs truncate">{c.detalle}</p>
-                  </div>
-                  <span className="font-mono text-sm font-semibold text-slate-700">{formatMonto(c.monto)}</span>
-                </button>
+                  </button>
+                  <span className="font-mono text-sm font-semibold text-slate-700 mr-3">{formatMonto(c.monto)}</span>
+                  <button
+                    onClick={() => {
+                      if (confirm('¿Descartar esta sugerencia? No se te va a volver a mostrar para esta factura.')) {
+                        onDescartar(c);
+                      }
+                    }}
+                    title="No es este movimiento"
+                    className="text-slate-300 hover:text-red-500 px-2"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
               ))}
             </div>
           </div>

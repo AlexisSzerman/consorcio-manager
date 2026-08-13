@@ -13,6 +13,10 @@ export default function Dashboard({
   proveedores,
   pagosParciales,
   ultimaActualizacionGlobal,
+  libroDiarioParaReconciliar,
+  libroDiarioPeriodos,
+  reconciliacionesDescartadas,
+  onDescartarSugerencia,
   onGuardarMovimiento,
   onEliminarMovimiento,
   onGuardarNota,
@@ -20,8 +24,6 @@ export default function Dashboard({
   onCrearMovimientoManual,
   onAgregarPagoParcial,
   onEliminarPagoParcial,
-  libroDiarioParaReconciliar,
-  libroDiarioPeriodos,
 }) {
   const [filterMes, setFilterMes] = useState(hoyStr().slice(0, 7));
   const [filterEstado, setFilterEstado] = useState('TODOS');
@@ -213,13 +215,15 @@ export default function Dashboard({
       <StatsCards stats={stats} onFiltrarRango={filtrarRango} />
 
       <MovimientosTable
-  movimientos={movimientosFiltrados}
+movimientos={movimientosFiltrados}
   consorcios={consorcios}
   servicios={servicios}
   proveedores={proveedores}
   pagosParciales={pagosParciales}
   libroDiarioParaReconciliar={libroDiarioParaReconciliar}
   libroDiarioPeriodos={libroDiarioPeriodos}
+  reconciliacionesDescartadas={reconciliacionesDescartadas}
+  onDescartarSugerencia={onDescartarSugerencia}
   seleccionados={seleccionados}
   onToggleSeleccion={toggleSeleccion}
   onToggleSeleccionarTodos={toggleSeleccionarTodos}

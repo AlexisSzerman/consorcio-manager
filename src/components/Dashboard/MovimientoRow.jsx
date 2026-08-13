@@ -36,13 +36,15 @@ function gmailUrl(mail) {
 }
 
 export default function MovimientoRow({
-movimiento,
+  movimiento,
   consorcioNombre,
   servicios,
   proveedores,
   pagosParciales,
   libroDiarioParaReconciliar,
   libroDiarioPeriodos,
+  reconciliacionesDescartadas,
+  onDescartarSugerencia,
   seleccionado,
   onToggleSeleccion,
   onGuardar,
@@ -97,18 +99,23 @@ movimiento,
   const totalPagadoParcial = pagosDeEstaFactura.reduce((sum, p) => sum + Number(p.monto), 0);
   const pendienteParcial = Math.max(Number(movimiento.monto) - totalPagadoParcial, 0);
 
-  const candidatosPago =
+const candidatosPago =
   movimiento.tipo === 'proveedor'
     ? buscarCandidatosPago({
         factura: movimiento,
         movimientosLibroDiario: libroDiarioParaReconciliar,
         libroDiarioPeriodos,
         pagosParciales,
+        descartadas: reconciliacionesDescartadas,
       })
     : [];
 
 async function confirmarReconciliacion(candidato, monto) {
   await onAgregarPagoParcial(movimiento.id, monto, candidato.fecha, null, candidato.id);
+}
+
+async function descartar(candidato) {
+  await onDescartarSugerencia(movimiento.id, candidato.id);
 }
 
   const linkBtn =
@@ -348,13 +355,14 @@ async function confirmarReconciliacion(candidato, monto) {
     </tr>
 
      {mostrarReconciliacion && (
-      <ReconciliacionModal
-        factura={movimiento}
-        candidatos={candidatosPago}
-        pendiente={pendienteParcial}
-        onConfirmar={confirmarReconciliacion}
-        onClose={() => setMostrarReconciliacion(false)}
-      />
+  <ReconciliacionModal
+    factura={movimiento}
+    candidatos={candidatosPago}
+    pendiente={pendienteParcial}
+    onConfirmar={confirmarReconciliacion}
+    onDescartar={descartar}
+    onClose={() => setMostrarReconciliacion(false)}
+  />
     )}
   </>
 );

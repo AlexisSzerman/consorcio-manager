@@ -11,6 +11,8 @@ export default function MovimientosTable({
   pagosParciales,
   libroDiarioParaReconciliar,
   libroDiarioPeriodos,
+  reconciliacionesDescartadas,
+  onDescartarSugerencia,
   seleccionados,
   onToggleSeleccion,
   onToggleSeleccionarTodos,
@@ -116,7 +118,7 @@ export default function MovimientosTable({
           </thead>
           <tbody className="divide-y divide-slate-100">
            {movimientos.map((mov) => (
-  <MovimientoRow
+   <MovimientoRow
     key={mov.id}
     movimiento={mov}
     consorcioNombre={nombreConsorcio(mov.consorcio_id)}
@@ -125,6 +127,8 @@ export default function MovimientosTable({
     pagosParciales={pagosParciales}
     libroDiarioParaReconciliar={libroDiarioParaReconciliar}
     libroDiarioPeriodos={libroDiarioPeriodos}
+    reconciliacionesDescartadas={reconciliacionesDescartadas}
+    onDescartarSugerencia={onDescartarSugerencia}
     seleccionado={seleccionados.has(mov.id)}
     onToggleSeleccion={onToggleSeleccion}
     onGuardar={onGuardarMovimiento}

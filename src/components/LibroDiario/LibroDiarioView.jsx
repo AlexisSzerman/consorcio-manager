@@ -7,6 +7,7 @@ const ESTADO_INFO = {
   ok: { label: 'Coincide', color: 'bg-emerald-100 text-emerald-800', icon: 'fa-circle-check' },
   diferencia: { label: 'Diferencia', color: 'bg-red-100 text-red-800', icon: 'fa-triangle-exclamation' },
   abierto: { label: 'Faltan saldos', color: 'bg-slate-100 text-slate-600', icon: 'fa-clock' },
+  cargando: { label: 'Cruzando...', color: 'bg-slate-100 text-slate-400', icon: 'fa-spinner fa-spin' },
 };
 
 function calcularEstadoPeriodo(periodo, movimientos) {
@@ -111,13 +112,13 @@ export default function LibroDiarioView({
               </option>
             ))}
           </select>
-            <ExportarLibroDiarioBoton
-    periodos={periodosDelConsorcio}
-    movimientosPorPeriodo={movimientosPorPeriodo}
-    proveedores={proveedores}
-    servicios={servicios}
-    unidades={consorcioActual?.unidades || []}
-  />
+          <ExportarLibroDiarioBoton
+            periodos={periodosDelConsorcio}
+            movimientosPorPeriodo={movimientosPorPeriodo}
+            proveedores={proveedores}
+            servicios={servicios}
+            unidades={consorcioActual?.unidades || []}
+          />
           <button
             onClick={() => setMostrarNuevoPeriodo(true)}
             disabled={!consorcioId}
@@ -135,8 +136,10 @@ export default function LibroDiarioView({
           </p>
         )}
         {periodosDelConsorcio.map((periodo) => {
-          const movs = movimientosPorPeriodo[periodo.id] || [];
-          const estado = calcularEstadoPeriodo(periodo, movs);
+          const movsCargados = movimientosPorPeriodo[periodo.id];
+          const cargando = movsCargados === undefined;
+          const movs = movsCargados || [];
+          const estado = cargando ? 'cargando' : calcularEstadoPeriodo(periodo, movs);
           const info = ESTADO_INFO[estado];
           return (
             <div
