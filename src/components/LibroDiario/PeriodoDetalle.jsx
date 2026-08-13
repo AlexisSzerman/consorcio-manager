@@ -223,24 +223,31 @@ const filasParaMostrar = [...filasVisibles].sort((a, b) => {
     }
   }
 
-  function nombreContraparte(m) {
-    if (m.categoria === "proveedor" && m.proveedor_id) {
-      return (
-        proveedores.find((p) => p.id === m.proveedor_id)?.nombre ||
-        m.texto_original_banco ||
-        "-"
-      );
-    }
-    if (m.categoria === "unidad" && m.unidad_id) {
-      const u = unidades.find((u) => u.id === m.unidad_id);
-      return u
-        ? `${u.numero_unidad} - ${u.propietario_nombre}`
-        : m.texto_original_banco || "-";
-    }
-    if (m.categoria === "gastos_bancarios")
-      return "Gastos Bancarios / Impuestos";
-    return m.texto_original_banco || "-";
+function nombreContraparte(m) {
+  if (m.categoria === "proveedor" && m.proveedor_id) {
+    return (
+      proveedores.find((p) => p.id === m.proveedor_id)?.nombre ||
+      m.texto_original_banco ||
+      "-"
+    );
   }
+  if (m.categoria === "unidad" && m.unidad_id) {
+    const u = unidades.find((u) => u.id === m.unidad_id);
+    return u
+      ? `${u.numero_unidad} - ${u.propietario_nombre}`
+      : m.texto_original_banco || "-";
+  }
+  if (m.categoria === "servicio" && m.servicio_id) {
+    return (
+      servicios.find((s) => s.id === m.servicio_id)?.nombre ||
+      m.texto_original_banco ||
+      "-"
+    );
+  }
+  if (m.categoria === "gastos_bancarios")
+    return "Gastos Bancarios / Impuestos";
+  return m.texto_original_banco || "-";
+}
 
   return (
     <section className="space-y-6">
