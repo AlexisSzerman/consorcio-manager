@@ -20,6 +20,8 @@ export default function Dashboard({
   onCrearMovimientoManual,
   onAgregarPagoParcial,
   onEliminarPagoParcial,
+  libroDiarioParaReconciliar,
+  libroDiarioPeriodos,
 }) {
   const [filterMes, setFilterMes] = useState(hoyStr().slice(0, 7));
   const [filterEstado, setFilterEstado] = useState('TODOS');
@@ -211,28 +213,30 @@ export default function Dashboard({
       <StatsCards stats={stats} onFiltrarRango={filtrarRango} />
 
       <MovimientosTable
-        movimientos={movimientosFiltrados}
-        consorcios={consorcios}
-        servicios={servicios}
-        proveedores={proveedores}
-        pagosParciales={pagosParciales}
-        seleccionados={seleccionados}
-        onToggleSeleccion={toggleSeleccion}
-        onToggleSeleccionarTodos={toggleSeleccionarTodos}
-        filterEstado={filterEstado}
-        onFilterEstadoChange={setFilterEstado}
-        filterConsorcio={filterConsorcio}
-        onFilterConsorcioChange={setFilterConsorcio}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
-        filtroTiempoRango={filtroTiempoRango}
-        onLimpiarFiltroTiempo={() => setFiltroTiempoRango(null)}
-        onGuardarMovimiento={onGuardarMovimiento}
-        onEliminarMovimiento={onEliminarMovimiento}
-        onGuardarNota={onGuardarNota}
-        onAgregarPagoParcial={onAgregarPagoParcial}
-        onEliminarPagoParcial={onEliminarPagoParcial}
-      />
+  movimientos={movimientosFiltrados}
+  consorcios={consorcios}
+  servicios={servicios}
+  proveedores={proveedores}
+  pagosParciales={pagosParciales}
+  libroDiarioParaReconciliar={libroDiarioParaReconciliar}
+  libroDiarioPeriodos={libroDiarioPeriodos}
+  seleccionados={seleccionados}
+  onToggleSeleccion={toggleSeleccion}
+  onToggleSeleccionarTodos={toggleSeleccionarTodos}
+  filterEstado={filterEstado}
+  onFilterEstadoChange={setFilterEstado}
+  filterConsorcio={filterConsorcio}
+  onFilterConsorcioChange={setFilterConsorcio}
+  sortBy={sortBy}
+  onSortByChange={setSortBy}
+  filtroTiempoRango={filtroTiempoRango}
+  onLimpiarFiltroTiempo={() => setFiltroTiempoRango(null)}
+  onGuardarMovimiento={onGuardarMovimiento}
+  onEliminarMovimiento={onEliminarMovimiento}
+  onGuardarNota={onGuardarNota}
+  onAgregarPagoParcial={onAgregarPagoParcial}
+  onEliminarPagoParcial={onEliminarPagoParcial}
+/>
 
       <SeleccionResumen
         cantidad={seleccionados.size}

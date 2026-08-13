@@ -48,6 +48,7 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
     libroDiarioPeriodos,
     libroDiarioMovimientosPorPeriodo,
     ultimaActualizacionGlobal,
+    libroDiarioParaReconciliar,
     addServicio,
     deleteServicio,
     updateServicio,
@@ -111,26 +112,28 @@ function AppContent({ activeTab, setActiveTab, userEmail, onLogout }) {
 
       <main className="max-w-7xl mx-auto w-full p-6 flex-1">
         {activeTab === 'dashboard' && (
-          <Dashboard
-            movimientos={movimientos}
-            consorcios={consorcios}
-            servicios={servicios}
-            proveedores={proveedores}
-            pagosParciales={pagosParciales}
-            ultimaActualizacionGlobal={ultimaActualizacionGlobal}
-            onGuardarMovimiento={updateMovimiento}
-            onEliminarMovimiento={async (id) => {
-              if (confirm('¿Seguro que quieres eliminar este vencimiento del tablero?')) {
-                await deleteMovimiento(id);
-              }
-            }}
-            onGuardarNota={updateNotaMovimiento}
-            onGenerarMes={generarMes}
-            onCrearMovimientoManual={addMovimientoManual}
-            onAgregarPagoParcial={addPagoParcial}
-            onEliminarPagoParcial={deletePagoParcial}
-          />
-        )}
+  <Dashboard
+    movimientos={movimientos}
+    consorcios={consorcios}
+    servicios={servicios}
+    proveedores={proveedores}
+    pagosParciales={pagosParciales}
+    ultimaActualizacionGlobal={ultimaActualizacionGlobal}
+    libroDiarioParaReconciliar={libroDiarioParaReconciliar}
+    libroDiarioPeriodos={libroDiarioPeriodos}
+    onGuardarMovimiento={updateMovimiento}
+    onEliminarMovimiento={async (id) => {
+      if (confirm('¿Seguro que quieres eliminar este vencimiento del tablero?')) {
+        await deleteMovimiento(id);
+      }
+    }}
+    onGuardarNota={updateNotaMovimiento}
+    onGenerarMes={generarMes}
+    onCrearMovimientoManual={addMovimientoManual}
+    onAgregarPagoParcial={addPagoParcial}
+    onEliminarPagoParcial={deletePagoParcial}
+  />
+)}
 
         {activeTab === 'consorcios' && (
           <ConsorciosView

@@ -12,35 +12,42 @@ export function useAppData() {
   const [libroDiarioMovimientosPorPeriodo, setLibroDiarioMovimientosPorPeriodo] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [libroDiarioParaReconciliar, setLibroDiarioParaReconciliar] = useState([]);
 
   const cargarTodo = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [
-        { data: serviciosData, error: eServicios },
-        { data: proveedoresData, error: eProveedores },
-        { data: consorciosData, error: eConsorcios },
-        { data: consServData, error: eConsServ },
-        { data: consProvData, error: eConsProv },
-        { data: movimientosData, error: eMovimientos },
-        { data: pagosParcialesData, error: ePagos },
-        { data: unidadesData, error: eUnidades },
-        { data: periodosData, error: ePeriodos },
-      ] = await Promise.all([
-        supabase.from('servicios').select('*').order('nombre'),
-        supabase.from('proveedores').select('*').order('nombre'),
-        supabase.from('consorcios').select('*').order('nombre'),
-        supabase.from('consorcio_servicios').select('*'),
-        supabase.from('consorcio_proveedores').select('*'),
-        supabase.from('movimientos').select('*').order('vencimiento'),
-        supabase.from('pagos_parciales').select('*').order('fecha'),
-        supabase.from('unidades').select('*').order('numero_unidad'),
-        supabase.from('libro_diario_periodos').select('*').order('periodo', { ascending: false }),
-      ]);
+  { data: serviciosData, error: eServicios },
+  { data: proveedoresData, error: eProveedores },
+  { data: consorciosData, error: eConsorcios },
+  { data: consServData, error: eConsServ },
+  { data: consProvData, error: eConsProv },
+  { data: movimientosData, error: eMovimientos },
+  { data: pagosParcialesData, error: ePagos },
+  { data: unidadesData, error: eUnidades },
+  { data: periodosData, error: ePeriodos },
+  { data: ldReconciliarData, error: eLdReconciliar },
+] = await Promise.all([
+  supabase.from('servicios').select('*').order('nombre'),
+  supabase.from('proveedores').select('*').order('nombre'),
+  supabase.from('consorcios').select('*').order('nombre'),
+  supabase.from('consorcio_servicios').select('*'),
+  supabase.from('consorcio_proveedores').select('*'),
+  supabase.from('movimientos').select('*').order('vencimiento'),
+  supabase.from('pagos_parciales').select('*').order('fecha'),
+  supabase.from('unidades').select('*').order('numero_unidad'),
+  supabase.from('libro_diario_periodos').select('*').order('periodo', { ascending: false }),
+  supabase
+    .from('libro_diario_movimientos')
+    .select('*')
+    .eq('categoria', 'proveedor')
+    .eq('tipo', 'egreso'),
+]);
 
-      const firstError = eServicios || eProveedores || eConsorcios || eConsServ || eConsProv || eMovimientos || ePagos || eUnidades || ePeriodos;
-      if (firstError) throw firstError;
+const firstError = eServicios || eProveedores || eConsorcios || eConsServ || eConsProv || eMovimientos || ePagos || eUnidades || ePeriodos || eLdReconciliar;
+if (firstError) throw firstError;
 
       const consorciosConRelaciones = (consorciosData || []).map((c) => ({
         ...c,
@@ -85,6 +92,7 @@ export function useAppData() {
       setPagosParciales(pagosParcialesData || []);
       setUnidades(unidadesData || []);
       setLibroDiarioPeriodos(periodosData || []);
+      setLibroDiarioParaReconciliar(ldReconciliarData || []);
     } catch (err) {
       console.error('Error cargando datos:', err);
       setError(err.message || 'Error al cargar los datos');
@@ -506,22 +514,28 @@ export function useAppData() {
     }
   }, [movimientos]);
 
-  const addPagoParcial = useCallback(async (movimientoId, monto, fecha, nota) => {
-    const { data: nuevoPago, error } = await supabase
-      .from('pagos_parciales')
-      .insert({ movimiento_id: movimientoId, monto, fecha, nota: nota || null })
-      .select()
-      .single();
-    if (error) throw error;
+  const addPagoParcial = useCallback(async (movimientoId, monto, fecha, nota, libroDiarioMovimientoId = null) => {
+  const { data: nuevoPago, error } = await supabase
+    .from('pagos_parciales')
+    .insert({
+      movimiento_id: movimientoId,
+      monto,
+      fecha,
+      nota: nota || null,
+      libro_diario_movimiento_id: libroDiarioMovimientoId,
+    })
+    .select()
+    .single();
+  if (error) throw error;
 
-    const pagosActualizados = [...pagosParciales, nuevoPago];
-    setPagosParciales(pagosActualizados);
+  const pagosActualizados = [...pagosParciales, nuevoPago];
+  setPagosParciales(pagosActualizados);
 
-    const pagosDeEsteMovimiento = pagosActualizados.filter((p) => p.movimiento_id === movimientoId);
-    await recalcularEstadoPorPagos(movimientoId, pagosDeEsteMovimiento);
+  const pagosDeEsteMovimiento = pagosActualizados.filter((p) => p.movimiento_id === movimientoId);
+  await recalcularEstadoPorPagos(movimientoId, pagosDeEsteMovimiento);
 
-    return nuevoPago;
-  }, [pagosParciales, recalcularEstadoPorPagos]);
+  return nuevoPago;
+}, [pagosParciales, recalcularEstadoPorPagos]);
 
   const deletePagoParcial = useCallback(async (pagoId, movimientoId) => {
     const { error } = await supabase.from('pagos_parciales').delete().eq('id', pagoId);
@@ -637,6 +651,7 @@ export function useAppData() {
     libroDiarioPeriodos,
     libroDiarioMovimientosPorPeriodo,
     ultimaActualizacionGlobal,
+    libroDiarioParaReconciliar,
     recargar: cargarTodo,
     addServicio,
     deleteServicio,

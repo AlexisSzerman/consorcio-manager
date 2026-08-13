@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { buscarCandidatosPago } from '../../utils/reconciliacion';
+import ReconciliacionModal from './ReconciliacionModal';
 import {
   esHoy,
   esEstaSemana,
@@ -34,20 +36,24 @@ function gmailUrl(mail) {
 }
 
 export default function MovimientoRow({
-  movimiento,
+movimiento,
   consorcioNombre,
   servicios,
   proveedores,
   pagosParciales,
+  libroDiarioParaReconciliar,
+  libroDiarioPeriodos,
   seleccionado,
   onToggleSeleccion,
   onGuardar,
   onEliminar,
   onAbrirNota,
   onAbrirPagoParcial,
+  onAgregarPagoParcial,
 }) {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState(null);
+  const [mostrarReconciliacion, setMostrarReconciliacion] = useState(false);
 
   function iniciarEdicion() {
     setForm({
@@ -90,6 +96,20 @@ export default function MovimientoRow({
   const pagosDeEstaFactura = pagosParciales.filter((p) => p.movimiento_id === movimiento.id);
   const totalPagadoParcial = pagosDeEstaFactura.reduce((sum, p) => sum + Number(p.monto), 0);
   const pendienteParcial = Math.max(Number(movimiento.monto) - totalPagadoParcial, 0);
+
+  const candidatosPago =
+  movimiento.tipo === 'proveedor'
+    ? buscarCandidatosPago({
+        factura: movimiento,
+        movimientosLibroDiario: libroDiarioParaReconciliar,
+        libroDiarioPeriodos,
+        pagosParciales,
+      })
+    : [];
+
+async function confirmarReconciliacion(candidato, monto) {
+  await onAgregarPagoParcial(movimiento.id, monto, candidato.fecha, null, candidato.id);
+}
 
   const linkBtn =
     movimiento.tipo === 'proveedor' ? (
@@ -239,6 +259,7 @@ export default function MovimientoRow({
   }
 
   return (
+    <>
     <tr className={`hover:bg-slate-50 border-b border-slate-100 ${seleccionado ? 'bg-indigo-50/40' : ''}`}>
       <td className="p-4 text-center">
         <input
@@ -271,10 +292,19 @@ export default function MovimientoRow({
               )}
             </span>
             <span
-              className={`text-xs px-2 py-1 rounded font-bold whitespace-nowrap ${ESTADO_BADGE[movimiento.estado]}`}
-            >
-              {ESTADO_LABEL[movimiento.estado] || movimiento.estado}
-            </span>
+  className={`text-xs px-2 py-1 rounded font-bold whitespace-nowrap ${ESTADO_BADGE[movimiento.estado]}`}
+>
+  {ESTADO_LABEL[movimiento.estado] || movimiento.estado}
+</span>
+{candidatosPago.length > 0 && (
+  <button
+    onClick={() => setMostrarReconciliacion(true)}
+    title="Posible pago encontrado en el Libro Diario"
+    className="text-amber-500 hover:text-amber-600"
+  >
+    <i className="fa-solid fa-triangle-exclamation"></i>
+  </button>
+)}
           </div>
           {avisoVencimiento && <div>{avisoVencimiento}</div>}
         </div>
@@ -316,5 +346,17 @@ export default function MovimientoRow({
         </div>
       </td>
     </tr>
-  );
+
+     {mostrarReconciliacion && (
+      <ReconciliacionModal
+        factura={movimiento}
+        candidatos={candidatosPago}
+        pendiente={pendienteParcial}
+        onConfirmar={confirmarReconciliacion}
+        onClose={() => setMostrarReconciliacion(false)}
+      />
+    )}
+  </>
+);
+  
 }

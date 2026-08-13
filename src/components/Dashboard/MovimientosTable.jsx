@@ -9,6 +9,8 @@ export default function MovimientosTable({
   servicios,
   proveedores,
   pagosParciales,
+  libroDiarioParaReconciliar,
+  libroDiarioPeriodos,
   seleccionados,
   onToggleSeleccion,
   onToggleSeleccionarTodos,
@@ -113,22 +115,25 @@ export default function MovimientosTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {movimientos.map((mov) => (
-              <MovimientoRow
-                key={mov.id}
-                movimiento={mov}
-                consorcioNombre={nombreConsorcio(mov.consorcio_id)}
-                servicios={servicios}
-                proveedores={proveedores}
-                pagosParciales={pagosParciales}
-                seleccionado={seleccionados.has(mov.id)}
-                onToggleSeleccion={onToggleSeleccion}
-                onGuardar={onGuardarMovimiento}
-                onEliminar={onEliminarMovimiento}
-                onAbrirNota={setNotaModalMov}
-                onAbrirPagoParcial={setPagoParcialModalMov}
-              />
-            ))}
+           {movimientos.map((mov) => (
+  <MovimientoRow
+    key={mov.id}
+    movimiento={mov}
+    consorcioNombre={nombreConsorcio(mov.consorcio_id)}
+    servicios={servicios}
+    proveedores={proveedores}
+    pagosParciales={pagosParciales}
+    libroDiarioParaReconciliar={libroDiarioParaReconciliar}
+    libroDiarioPeriodos={libroDiarioPeriodos}
+    seleccionado={seleccionados.has(mov.id)}
+    onToggleSeleccion={onToggleSeleccion}
+    onGuardar={onGuardarMovimiento}
+    onEliminar={onEliminarMovimiento}
+    onAbrirNota={setNotaModalMov}
+    onAbrirPagoParcial={setPagoParcialModalMov}
+    onAgregarPagoParcial={onAgregarPagoParcial}
+  />
+))}
             {movimientos.length === 0 && (
               <tr>
                 <td colSpan={8} className="p-8 text-center text-slate-400 text-sm">
