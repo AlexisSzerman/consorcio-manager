@@ -1,3 +1,4 @@
+// components/libroDiario/ImportarBancoModal.jsx
 import { useState } from "react";
 import {
   PERFILES_BANCO,
@@ -5,6 +6,20 @@ import {
   marcarAnteriorAlSaldoInicial,
 } from "../../utils/importadorBancos";
 import { formatMonto, formatFechaDDMMYYYY } from "../../utils/dateHelpers";
+
+function calcularSaldoInicialSugerido(filas) {
+  const conSaldo = filas.filter((f) => f.saldo_informado_banco != null);
+  if (conSaldo.length === 0) return null;
+  const primera = conSaldo[0];
+  const delta = primera.tipo === "ingreso" ? primera.monto : -primera.monto;
+  return Number((primera.saldo_informado_banco - delta).toFixed(2));
+}
+
+function calcularSaldoFinalSugerido(filas) {
+  const conSaldo = filas.filter((f) => f.saldo_informado_banco != null);
+  if (conSaldo.length === 0) return null;
+  return conSaldo[conSaldo.length - 1].saldo_informado_banco;
+}
 
 export default function ImportarBancoModal({
   periodo,
@@ -18,25 +33,27 @@ export default function ImportarBancoModal({
   const [filas, setFilas] = useState(null);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
+  const [avisoContinuidad, setAvisoContinuidad] = useState(null);
 
   const bancoNormalizado = (periodo.banco || "")
     .toString()
     .trim()
     .toUpperCase();
 
-const perfil =
-  PERFILES_BANCO[periodo.banco] ||
-  PERFILES_BANCO[bancoNormalizado] ||
-  PERFILES_BANCO[bancoNormalizado.replace(/\s+/g, "_")] ||
-  Object.entries(PERFILES_BANCO).find(([clave]) =>
-    bancoNormalizado.includes(clave)
-  )?.[1] ||
-  null;
+  const perfil =
+    PERFILES_BANCO[periodo.banco] ||
+    PERFILES_BANCO[bancoNormalizado] ||
+    PERFILES_BANCO[bancoNormalizado.replace(/\s+/g, "_")] ||
+    Object.entries(PERFILES_BANCO).find(([clave]) =>
+      bancoNormalizado.includes(clave)
+    )?.[1] ||
+    null;
 
   function handleArchivo(e) {
     const file = e.target.files[0];
     if (!file) return;
     setError(null);
+    setAvisoContinuidad(null);
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -81,6 +98,25 @@ const perfil =
             duplicado,
           };
         });
+
+        // Chequeo de continuidad: el saldo inicial que "trae" este archivo
+        // (calculado desde su primer movimiento con saldo informado) debería
+        // coincidir con el saldo final que ya tenés guardado del período.
+        // Si no coincide, probablemente falta un archivo intermedio (gap)
+        // o estás re-importando algo viejo/duplicado.
+        const saldoInicialArchivo = calcularSaldoInicialSugerido(conSugerencias);
+        if (
+          periodo.saldo_final_declarado != null &&
+          saldoInicialArchivo != null &&
+          Math.abs(saldoInicialArchivo - periodo.saldo_final_declarado) >= 0.01
+        ) {
+          setAvisoContinuidad({
+            saldoEsperado: periodo.saldo_final_declarado,
+            saldoArchivo: saldoInicialArchivo,
+            diferencia: saldoInicialArchivo - periodo.saldo_final_declarado,
+          });
+        }
+
         setFilas(conSugerencias);
       } catch (err) {
         setError("No se pudo leer el archivo: " + err.message);
@@ -120,15 +156,9 @@ const perfil =
       );
       let sugerenciaSaldos = null;
       if (conSaldo.length > 0) {
-        const primera = conSaldo[0];
-        const ultima = conSaldo[conSaldo.length - 1];
-        const deltaPrimera =
-          primera.tipo === "ingreso" ? primera.monto : -primera.monto;
         sugerenciaSaldos = {
-          inicial: Number(
-            (primera.saldo_informado_banco - deltaPrimera).toFixed(2),
-          ),
-          final: ultima.saldo_informado_banco,
+          inicial: calcularSaldoInicialSugerido(conSaldo),
+          final: calcularSaldoFinalSugerido(conSaldo),
         };
       }
 
@@ -208,6 +238,29 @@ const perfil =
 
         {filas && (
           <>
+            {avisoContinuidad && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 text-xs text-amber-800 space-y-1">
+                <p className="font-bold">
+                  <i className="fa-solid fa-triangle-exclamation mr-1"></i>
+                  El saldo inicial de este archivo no coincide con el saldo
+                  final guardado del período
+                </p>
+                <p>
+                  Saldo final guardado: {formatMonto(avisoContinuidad.saldoEsperado)}
+                  {" · "}
+                  Saldo inicial de este archivo: {formatMonto(avisoContinuidad.saldoArchivo)}
+                  {" · "}
+                  Diferencia: {formatMonto(Math.abs(avisoContinuidad.diferencia))}
+                </p>
+                <p>
+                  Puede ser que falte un archivo intermedio (un rango de fechas
+                  sin importar) o que este archivo se superponga con uno ya
+                  cargado. Revisá las fechas antes de confirmar — igual podés
+                  continuar si estás seguro.
+                </p>
+              </div>
+            )}
+
             <p className="text-xs text-slate-500">
               {filas.length} movimientos encontrados. Revisá la clasificación
               sugerida antes de confirmar — las filas grises parecen estar ya

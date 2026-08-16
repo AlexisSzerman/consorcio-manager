@@ -205,23 +205,22 @@ const filasParaMostrar = [...filasVisibles].sort((a, b) => {
     }
   }
 
-  async function manejarImportacion(nuevosMovimientos, sugerenciaSaldos) {
-    await onAddMovimientosBulk(periodo.id, nuevosMovimientos);
-    if (sugerenciaSaldos) {
-      if (
-        periodo.saldo_inicial_declarado == null &&
-        sugerenciaSaldos.inicial != null
-      ) {
-        setSaldoInicial(sugerenciaSaldos.inicial);
-      }
-      if (
-        periodo.saldo_final_declarado == null &&
-        sugerenciaSaldos.final != null
-      ) {
-        setSaldoFinal(sugerenciaSaldos.final);
-      }
+async function manejarImportacion(nuevosMovimientos, sugerenciaSaldos) {
+  await onAddMovimientosBulk(periodo.id, nuevosMovimientos);
+  if (sugerenciaSaldos) {
+    // el saldo inicial es fijo por período: solo se completa la primera vez
+    if (
+      periodo.saldo_inicial_declarado == null &&
+      sugerenciaSaldos.inicial != null
+    ) {
+      setSaldoInicial(sugerenciaSaldos.inicial);
+    }
+    // el saldo final se actualiza siempre con el de la importación más reciente
+    if (sugerenciaSaldos.final != null) {
+      setSaldoFinal(sugerenciaSaldos.final);
     }
   }
+}
 
 function nombreContraparte(m) {
   if (m.categoria === "proveedor" && m.proveedor_id) {
