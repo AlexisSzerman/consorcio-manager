@@ -143,7 +143,7 @@ export default function ImportarBancoModal({
         .filter((f) => f.incluir)
         .map((f) => ({
           fecha: f.fecha,
-           detalle: f.detalle || f.texto_original_banco,
+           detalle: f.detalle,
           tipo: f.tipo,
           monto: f.monto,
           saldo_informado_banco: f.saldo_informado_banco,
