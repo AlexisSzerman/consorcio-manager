@@ -2,131 +2,127 @@ import { useState, useEffect } from 'react';
 import { formatMonto, formatFechaDDMMYYYY } from '../../utils/dateHelpers';
 
 export default function ReconciliacionModal({ factura, candidatos, pendiente, onConfirmar, onDescartar, onClose }) {
-  const [candidatoElegido, setCandidatoElegido] = useState(null);
-  const [monto, setMonto] = useState('');
-  const [guardando, setGuardando] = useState(false);
-
+  const [guardando, setGuardando] = useState(null); // id del candidato en proceso, o null
 
   useEffect(() => {
-    if (candidatos.length === 0 && !candidatoElegido) {
+    if (candidatos.length === 0) {
       onClose();
     }
-  }, [candidatos.length, candidatoElegido, onClose]);
+  }, [candidatos.length, onClose]);
 
+  const candidatosOrdenados = [...candidatos].sort((a, b) => {
+    const diffA = Math.abs(Number(a.monto) - pendiente);
+    const diffB = Math.abs(Number(b.monto) - pendiente);
+    return diffA - diffB;
+  });
 
-  function elegir(candidato) {
-    setCandidatoElegido(candidato);
-    setMonto(String(Math.min(Number(candidato.monto), pendiente > 0 ? pendiente : Number(candidato.monto))));
-  }
-
-  async function confirmar() {
-    const montoNum = parseFloat(monto);
-    if (!montoNum || montoNum <= 0) return;
-    setGuardando(true);
+  async function confirmar(candidato) {
+    setGuardando(candidato.id);
     try {
-      await onConfirmar(candidatoElegido, montoNum);
+      await onConfirmar(candidato, Number(candidato.monto));
       onClose();
     } catch (err) {
       alert('Error al registrar el pago: ' + err.message);
     } finally {
-      setGuardando(false);
+      setGuardando(null);
     }
+  }
+
+  async function descartar(candidato) {
+    if (!confirm('¿Descartar esta sugerencia? No se te va a volver a mostrar para esta factura.')) return;
+    await onDescartar(candidato);
   }
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-start">
+        {/* Header */}
+        <div className="p-5 border-b border-slate-100 flex justify-between items-start">
           <div>
-            <h3 className="font-bold text-slate-900 text-lg">Posible pago encontrado</h3>
-            <p className="text-xs text-slate-500">
-              Factura {factura.num_factura ? `Nº ${factura.num_factura}` : ''} — {factura.item_nombre} — Pendiente:{' '}
-              <span className="font-semibold">{formatMonto(pendiente)}</span>
+            <h3 className="font-bold text-slate-900 text-base">Posible pago encontrado</h3>
+            <p className="text-sm text-slate-600 mt-1">
+              {factura.item_nombre}
+              {factura.num_factura ? ` · Nº ${factura.num_factura}` : ''}
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Pendiente: <span className="font-semibold text-slate-600">{formatMonto(pendiente)}</span>
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0">
             <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        {!candidatoElegido && (
+        {/* Body */}
+        <div className="p-5 overflow-y-auto space-y-3">
+          <p className="text-xs text-slate-500">
+            Movimientos del Libro Diario del mismo proveedor, todavía sin vincular a ningún pago. Si ninguno cierra
+            el monto exacto, cargalo como pago parcial desde el ícono correspondiente en la fila.
+          </p>
+
           <div className="space-y-2">
-            <p className="text-xs text-slate-500">
-              Estos movimientos del Libro Diario son del mismo proveedor y todavía no están vinculados a ningún
-              pago. Elegí el que corresponda:
-            </p>
-            <div className="divide-y divide-slate-100 border rounded-lg">
-              {candidatos.map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-3 hover:bg-slate-50">
-                  <button onClick={() => elegir(c)} className="text-left flex-1">
-                    <p className="text-sm text-slate-800">{formatFechaDDMMYYYY(c.fecha)}</p>
-                    <p className="text-xs text-slate-400 max-w-xs truncate">{c.detalle}</p>
-                  </button>
-                  <span className="font-mono text-sm font-semibold text-slate-700 mr-3">{formatMonto(c.monto)}</span>
-                  <button
-                    onClick={() => {
-                      if (confirm('¿Descartar esta sugerencia? No se te va a volver a mostrar para esta factura.')) {
-                        onDescartar(c);
-                      }
-                    }}
-                    title="No es este movimiento"
-                    className="text-slate-300 hover:text-red-500 px-2"
-                  >
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
+            {candidatosOrdenados.map((c) => {
+              const diferencia = Math.abs(Number(c.monto) - pendiente);
+              const coincideExacto = diferencia <= 0.5;
+
+              return (
+                <div
+                  key={c.id}
+                  className={`rounded-lg border p-3 ${
+                    coincideExacto ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-800">
+                          {formatFechaDDMMYYYY(c.fecha)}
+                        </span>
+                        {coincideExacto && (
+                          <span className="text-[10px] bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded">
+                            COINCIDE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{c.detalle}</p>
+                    </div>
+                    <span
+                      className={`font-mono text-sm font-bold whitespace-nowrap ${
+                        coincideExacto ? 'text-emerald-700' : 'text-slate-700'
+                      }`}
+                    >
+                      {formatMonto(c.monto)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-end items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => descartar(c)}
+                      className="text-xs text-slate-400 hover:text-red-500 px-2 py-1"
+                    >
+                      No es este
+                    </button>
+                    <button
+                      onClick={() => confirmar(c)}
+                      disabled={!coincideExacto || guardando === c.id}
+                      title={!coincideExacto ? 'El monto no coincide con el pendiente' : ''}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-semibold disabled:opacity-40 disabled:cursor-not-allowed ${
+                        coincideExacto
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-slate-100 text-slate-400'
+                      }`}
+                    >
+                      {guardando === c.id ? 'Guardando...' : 'Marcar pagado'}
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
-
-        {candidatoElegido && (
-          <div className="space-y-3">
-            <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-600">
-              <p>
-                <span className="font-semibold">Movimiento:</span> {formatFechaDDMMYYYY(candidatoElegido.fecha)} —{' '}
-                {candidatoElegido.detalle}
-              </p>
-              <p>
-                <span className="font-semibold">Monto del movimiento:</span> {formatMonto(candidatoElegido.monto)}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Monto a registrar como pago</label>
-              <input
-                type="number"
-                step="0.01"
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Por defecto es el menor entre el monto del movimiento y el pendiente de la factura. Ajustalo si
-                corresponde un pago parcial distinto.
-              </p>
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <button
-                onClick={() => setCandidatoElegido(null)}
-                className="text-xs px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100"
-              >
-                <i className="fa-solid fa-arrow-left mr-1"></i> Elegir otro movimiento
-              </button>
-              <button
-                onClick={confirmar}
-                disabled={guardando}
-                className="text-sm px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold disabled:opacity-50"
-              >
-                {guardando ? 'Registrando...' : 'Registrar como pago'}
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
