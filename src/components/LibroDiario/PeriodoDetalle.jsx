@@ -206,7 +206,9 @@ const filasParaMostrar = [...filasVisibles].sort((a, b) => {
   }
 
 async function manejarImportacion(nuevosMovimientos, sugerenciaSaldos) {
-  await onAddMovimientosBulk(periodo.id, nuevosMovimientos);
+  if (nuevosMovimientos.length > 0) {
+    await onAddMovimientosBulk(periodo.id, nuevosMovimientos);
+  }
   if (sugerenciaSaldos) {
     // el saldo inicial es fijo por período: solo se completa la primera vez
     if (
@@ -218,6 +220,13 @@ async function manejarImportacion(nuevosMovimientos, sugerenciaSaldos) {
     // el saldo final se actualiza siempre con el de la importación más reciente
     if (sugerenciaSaldos.final != null) {
       setSaldoFinal(sugerenciaSaldos.final);
+    }
+    // se guarda directo en la base (no depende de que apretes "Guardar saldos"),
+    // porque queremos dejar constancia de la revisión aunque no haya novedades
+    if (sugerenciaSaldos.fechaVerificacion) {
+      await onUpdatePeriodo(periodo.id, {
+        ultima_verificacion_banco: sugerenciaSaldos.fechaVerificacion,
+      });
     }
   }
 }
@@ -361,24 +370,31 @@ function nombreContraparte(m) {
           </div>
         </div>
 
-        <div className="flex justify-between items-center pt-2 border-t">
-          {finalNum === null ? (
-            <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full font-bold">
-              <i className="fa-solid fa-clock mr-1"></i> Ingresá el saldo
-              inicial y final para verificar
-            </span>
-          ) : coincide ? (
-            <span className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full font-bold">
-              <i className="fa-solid fa-circle-check mr-1"></i>
-              Coincide
-              {ultimaFecha ? ` al ${formatFechaDDMMYYYY(ultimaFecha)}` : ""}
-            </span>
-          ) : (
-            <span className="text-xs bg-red-100 text-red-800 px-3 py-1.5 rounded-full font-bold">
-              <i className="fa-solid fa-triangle-exclamation mr-1"></i>
-              Diferencia de {formatMonto(Math.abs(saldoCalculado - finalNum))}
-            </span>
-          )}
+        {periodo.ultima_verificacion_banco && (
+  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+    <i className="fa-solid fa-magnifying-glass"></i>
+    Última verificación del banco: {formatFechaDDMMYYYY(periodo.ultima_verificacion_banco)}
+  </p>
+)}
+
+<div className="flex justify-between items-center pt-2 border-t">
+  {finalNum === null ? (
+    <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full font-bold">
+      <i className="fa-solid fa-clock mr-1"></i> Ingresá el saldo
+      inicial y final para verificar
+    </span>
+  ) : coincide ? (
+    <span className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full font-bold">
+      <i className="fa-solid fa-circle-check mr-1"></i>
+      Coincide
+      {ultimaFecha ? ` al ${formatFechaDDMMYYYY(ultimaFecha)}` : ""}
+    </span>
+  ) : (
+    <span className="text-xs bg-red-100 text-red-800 px-3 py-1.5 rounded-full font-bold">
+      <i className="fa-solid fa-triangle-exclamation mr-1"></i>
+      Diferencia de {formatMonto(Math.abs(saldoCalculado - finalNum))}
+    </span>
+  )}
 
           {desglosePorCategoria.length > 0 && (
             <div className="pt-3 border-t">

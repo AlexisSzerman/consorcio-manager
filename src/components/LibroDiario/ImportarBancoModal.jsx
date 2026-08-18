@@ -20,6 +20,27 @@ function calcularSaldoFinalSugerido(filas) {
   return conSaldo[conSaldo.length - 1].saldo_informado_banco;
 }
 
+// Clave de duplicados: preferimos comprobante_banco (lo pone el banco, es
+// inmutable) cuando está disponible en ambos lados. Si no, caemos a
+// fecha+monto+tipo — a propósito NO usamos "detalle", porque es un campo que
+// se puede editar a mano desde el modal de edición, y un movimiento editado
+// (aunque sea solo la redacción, sin tocar fecha/monto) dejaría de matchear
+// para siempre contra el original.
+function esDuplicado(m, movimientosExistentes) {
+  return movimientosExistentes.some((ex) => {
+    if (m.comprobante_banco && ex.comprobante_banco) {
+      return (
+        ex.comprobante_banco === m.comprobante_banco && ex.fecha === m.fecha
+      );
+    }
+    return (
+      ex.fecha === m.fecha &&
+      Number(ex.monto) === m.monto &&
+      ex.tipo === m.tipo
+    );
+  });
+}
+
 export default function ImportarBancoModal({
   periodo,
   movimientosExistentes,
@@ -33,6 +54,7 @@ export default function ImportarBancoModal({
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
   const [avisoContinuidad, setAvisoContinuidad] = useState(null);
+  const [fechaVerificacionArchivo, setFechaVerificacionArchivo] = useState(null);
 
   const bancoNormalizado = (periodo.banco || "")
     .toString()
@@ -81,13 +103,7 @@ export default function ImportarBancoModal({
               candidatoId = candidatos[0].id;
             }
           }
-          const duplicado = movimientosExistentes.some(
-            (ex) =>
-              ex.fecha === m.fecha &&
-              Number(ex.monto) === m.monto &&
-              ex.tipo === m.tipo/*  &&
-              ex.detalle === m.detalle, */
-          );
+          const duplicado = esDuplicado(m, movimientosExistentes);
           return {
             ...m,
             categoria,
@@ -122,7 +138,21 @@ export default function ImportarBancoModal({
           });
         }
 
+        // Fecha "hasta la cual ya revisaste el banco": el último movimiento
+        // que trae el archivo, exista o no algo nuevo ahí. Es distinta de la
+        // fecha del último movimiento cargado en el Libro Diario — esa te
+        // dice cuándo se movió la plata por última vez, esta te dice cuándo
+        // fue la última vez que vos efectivamente chequeaste el banco.
+        const fechaVerificacion =
+          conSugerencias.length > 0
+            ? conSugerencias.reduce(
+                (max, f) => (f.fecha > max ? f.fecha : max),
+                conSugerencias[0].fecha,
+              )
+            : null;
+
         setFilas(conSugerencias);
+        setFechaVerificacionArchivo(fechaVerificacion);
       } catch (err) {
         setError("No se pudo leer el archivo: " + err.message);
       }
@@ -143,7 +173,7 @@ export default function ImportarBancoModal({
         .filter((f) => f.incluir)
         .map((f) => ({
           fecha: f.fecha,
-           detalle: f.detalle,
+          detalle: f.detalle,
           tipo: f.tipo,
           monto: f.monto,
           saldo_informado_banco: f.saldo_informado_banco,
@@ -152,6 +182,7 @@ export default function ImportarBancoModal({
           unidad_id: f.categoria === "unidad" ? f.candidatoId : null,
           servicio_id: f.categoria === "servicio" ? f.candidatoId : null,
           texto_original_banco: f.texto_original_banco,
+          comprobante_banco: f.comprobante_banco || null,
           confirmado: f.categoria !== "sin_clasificar",
           orden_original: f.orden_original,
         }));
@@ -159,13 +190,11 @@ export default function ImportarBancoModal({
       const conSaldo = filas.filter(
         (f) => f.incluir && f.saldo_informado_banco != null,
       );
-      let sugerenciaSaldos = null;
-      if (conSaldo.length > 0) {
-        sugerenciaSaldos = {
-          inicial: calcularSaldoInicialSugerido(conSaldo),
-          final: calcularSaldoFinalSugerido(conSaldo),
-        };
-      }
+      const sugerenciaSaldos = {
+        inicial: conSaldo.length > 0 ? calcularSaldoInicialSugerido(conSaldo) : null,
+        final: conSaldo.length > 0 ? calcularSaldoFinalSugerido(conSaldo) : null,
+        fechaVerificacion: fechaVerificacionArchivo,
+      };
 
       await onImportar(aInsertar, sugerenciaSaldos);
       onClose();
@@ -434,6 +463,16 @@ export default function ImportarBancoModal({
               <p className="text-xs text-slate-500">
                 {filas.filter((f) => f.incluir).length} de {filas.length} se van
                 a importar
+                {filas.filter((f) => f.incluir).length === 0 && (
+                  <span className="block text-slate-400">
+                    No hay movimientos nuevos — igual podés confirmar para
+                    dejar registrado que revisaste el banco hasta el{" "}
+                    {fechaVerificacionArchivo
+                      ? formatFechaDDMMYYYY(fechaVerificacionArchivo)
+                      : "-"}
+                    .
+                  </span>
+                )}
               </p>
               <div className="flex gap-2">
                 <button
@@ -444,12 +483,14 @@ export default function ImportarBancoModal({
                 </button>
                 <button
                   onClick={confirmarImportacion}
-                  disabled={
-                    procesando || filas.filter((f) => f.incluir).length === 0
-                  }
+                  disabled={procesando}
                   className="text-sm px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold disabled:opacity-50"
                 >
-                  {procesando ? "Importando..." : "Confirmar importación"}
+                  {procesando
+                    ? "Importando..."
+                    : filas.filter((f) => f.incluir).length === 0
+                      ? "Confirmar revisión (sin novedades)"
+                      : "Confirmar importación"}
                 </button>
               </div>
             </div>
