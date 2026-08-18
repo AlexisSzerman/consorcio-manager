@@ -1,4 +1,3 @@
-// components/libroDiario/ImportarBancoModal.jsx
 import { useState } from "react";
 import {
   PERFILES_BANCO,
@@ -86,8 +85,8 @@ export default function ImportarBancoModal({
             (ex) =>
               ex.fecha === m.fecha &&
               Number(ex.monto) === m.monto &&
-              ex.tipo === m.tipo &&
-              ex.detalle === m.detalle,
+              ex.tipo === m.tipo/*  &&
+              ex.detalle === m.detalle, */
           );
           return {
             ...m,
@@ -99,21 +98,27 @@ export default function ImportarBancoModal({
           };
         });
 
-        // Chequeo de continuidad: el saldo inicial que "trae" este archivo
-        // (calculado desde su primer movimiento con saldo informado) debería
-        // coincidir con el saldo final que ya tenés guardado del período.
-        // Si no coincide, probablemente falta un archivo intermedio (gap)
-        // o estás re-importando algo viejo/duplicado.
-        const saldoInicialArchivo = calcularSaldoInicialSugerido(conSugerencias);
+        // Chequeo de continuidad: comparamos el saldo final que ya tenías
+        // guardado contra el saldo "antes del primer movimiento GENUINAMENTE
+        // NUEVO" de este archivo (ignorando los que ya están duplicados).
+        //
+        // Esto es clave cuando el archivo nuevo se solapa a propósito con el
+        // anterior (ej: volvés a bajar desde un día antes para no perderte
+        // movimientos tardíos) — si comparásemos contra el primer movimiento
+        // del archivo sin más, ese sería parte del solapamiento y el saldo
+        // "antes" de ese movimiento no tiene por qué coincidir con nada.
+        const noDuplicados = conSugerencias.filter((f) => !f.duplicado);
+        const saldoInicialTramoNuevo = calcularSaldoInicialSugerido(noDuplicados);
+
         if (
           periodo.saldo_final_declarado != null &&
-          saldoInicialArchivo != null &&
-          Math.abs(saldoInicialArchivo - periodo.saldo_final_declarado) >= 0.01
+          saldoInicialTramoNuevo != null &&
+          Math.abs(saldoInicialTramoNuevo - periodo.saldo_final_declarado) >= 0.01
         ) {
           setAvisoContinuidad({
             saldoEsperado: periodo.saldo_final_declarado,
-            saldoArchivo: saldoInicialArchivo,
-            diferencia: saldoInicialArchivo - periodo.saldo_final_declarado,
+            saldoArchivo: saldoInicialTramoNuevo,
+            diferencia: saldoInicialTramoNuevo - periodo.saldo_final_declarado,
           });
         }
 
@@ -138,7 +143,7 @@ export default function ImportarBancoModal({
         .filter((f) => f.incluir)
         .map((f) => ({
           fecha: f.fecha,
-          detalle: f.detalle,
+          /* detalle: f.detalle, */
           tipo: f.tipo,
           monto: f.monto,
           saldo_informado_banco: f.saldo_informado_banco,
@@ -242,21 +247,22 @@ export default function ImportarBancoModal({
               <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 text-xs text-amber-800 space-y-1">
                 <p className="font-bold">
                   <i className="fa-solid fa-triangle-exclamation mr-1"></i>
-                  El saldo inicial de este archivo no coincide con el saldo
-                  final guardado del período
+                  El saldo antes del primer movimiento nuevo de este archivo no
+                  coincide con el saldo final guardado del período
                 </p>
                 <p>
                   Saldo final guardado: {formatMonto(avisoContinuidad.saldoEsperado)}
                   {" · "}
-                  Saldo inicial de este archivo: {formatMonto(avisoContinuidad.saldoArchivo)}
+                  Saldo antes del primer movimiento nuevo: {formatMonto(avisoContinuidad.saldoArchivo)}
                   {" · "}
                   Diferencia: {formatMonto(Math.abs(avisoContinuidad.diferencia))}
                 </p>
                 <p>
                   Puede ser que falte un archivo intermedio (un rango de fechas
-                  sin importar) o que este archivo se superponga con uno ya
-                  cargado. Revisá las fechas antes de confirmar — igual podés
-                  continuar si estás seguro.
+                  sin importar) o que algún movimiento del solapamiento no se
+                  haya reconocido como duplicado. Revisá las filas marcadas como
+                  "Posible duplicado" antes de confirmar — igual podés continuar
+                  si estás seguro.
                 </p>
               </div>
             )}
