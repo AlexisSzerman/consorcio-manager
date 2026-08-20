@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { buscarCandidatosPago } from '../../utils/reconciliacion';
-import ReconciliacionModal from './ReconciliacionModal';
 import {
   esHoy,
   esEstaSemana,
@@ -52,10 +51,10 @@ export default function MovimientoRow({
   onAbrirNota,
   onAbrirPagoParcial,
   onAgregarPagoParcial,
+  onAbrirReconciliacion,
 }) {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState(null);
-  const [mostrarReconciliacion, setMostrarReconciliacion] = useState(false);
 
   function iniciarEdicion() {
     setForm({
@@ -99,24 +98,16 @@ export default function MovimientoRow({
   const totalPagadoParcial = pagosDeEstaFactura.reduce((sum, p) => sum + Number(p.monto), 0);
   const pendienteParcial = Math.max(Number(movimiento.monto) - totalPagadoParcial, 0);
 
-const candidatosPago =
-  movimiento.tipo === 'proveedor'
-    ? buscarCandidatosPago({
-        factura: movimiento,
-        movimientosLibroDiario: libroDiarioParaReconciliar,
-        libroDiarioPeriodos,
-        pagosParciales,
-        descartadas: reconciliacionesDescartadas,
-      })
-    : [];
-
-async function confirmarReconciliacion(candidato, monto) {
-  await onAgregarPagoParcial(movimiento.id, monto, candidato.fecha, null, candidato.id);
-}
-
-async function descartar(candidato) {
-  await onDescartarSugerencia(movimiento.id, candidato.id);
-}
+  const candidatosPago =
+    movimiento.tipo === 'proveedor'
+      ? buscarCandidatosPago({
+          factura: movimiento,
+          movimientosLibroDiario: libroDiarioParaReconciliar,
+          libroDiarioPeriodos,
+          pagosParciales,
+          descartadas: reconciliacionesDescartadas,
+        })
+      : [];
 
   const linkBtn =
     movimiento.tipo === 'proveedor' ? (
@@ -266,7 +257,6 @@ async function descartar(candidato) {
   }
 
   return (
-    <>
     <tr className={`hover:bg-slate-50 border-b border-slate-100 ${seleccionado ? 'bg-indigo-50/40' : ''}`}>
       <td className="p-4 text-center">
         <input
@@ -299,19 +289,19 @@ async function descartar(candidato) {
               )}
             </span>
             <span
-  className={`text-xs px-2 py-1 rounded font-bold whitespace-nowrap ${ESTADO_BADGE[movimiento.estado]}`}
->
-  {ESTADO_LABEL[movimiento.estado] || movimiento.estado}
-</span>
-{candidatosPago.length > 0 && (
-  <button
-    onClick={() => setMostrarReconciliacion(true)}
-    title="Posible pago encontrado en el Libro Diario"
-    className="text-amber-500 hover:text-amber-600"
-  >
-    <i className="fa-solid fa-triangle-exclamation"></i>
-  </button>
-)}
+              className={`text-xs px-2 py-1 rounded font-bold whitespace-nowrap ${ESTADO_BADGE[movimiento.estado]}`}
+            >
+              {ESTADO_LABEL[movimiento.estado] || movimiento.estado}
+            </span>
+            {candidatosPago.length > 0 && (
+              <button
+                onClick={() => onAbrirReconciliacion(movimiento, candidatosPago, pendienteParcial)}
+                title="Posible pago encontrado en el Libro Diario"
+                className="text-amber-500 hover:text-amber-600"
+              >
+                <i className="fa-solid fa-triangle-exclamation"></i>
+              </button>
+            )}
           </div>
           {avisoVencimiento && <div>{avisoVencimiento}</div>}
         </div>
@@ -353,18 +343,5 @@ async function descartar(candidato) {
         </div>
       </td>
     </tr>
-
-     {mostrarReconciliacion && (
-  <ReconciliacionModal
-    factura={movimiento}
-    candidatos={candidatosPago}
-    pendiente={pendienteParcial}
-    onConfirmar={confirmarReconciliacion}
-    onDescartar={descartar}
-    onClose={() => setMostrarReconciliacion(false)}
-  />
-    )}
-  </>
-);
-  
+  );
 }

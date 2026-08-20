@@ -87,32 +87,32 @@ export default function Dashboard({
   }, [movimientos]);
 
   const movimientosFiltrados = useMemo(() => {
-    const nombreConsorcio = (id) => consorcios.find((c) => c.id === id)?.nombre || '';
+  const nombreConsorcio = (id) => consorcios.find((c) => c.id === id)?.nombre || '';
 
-    const filtrados = movimientos.filter((mov) => {
-      if (filterMes !== 'TODOS') {
-        const vencEnMes = mov.vencimiento && mov.vencimiento.startsWith(filterMes);
-        const pagoEnMes = mov.fecha_pago && mov.fecha_pago.startsWith(filterMes);
+  const filtrados = movimientos.filter((mov) => {
+    // Si hay un filtro de Estado específico activo, el filtro de Mes no restringe
+    // -- el usuario quiere ver TODAS las facturas de ese estado, sin importar mes.
+    if (filterMes !== 'TODOS' && filterEstado === 'TODOS') {
+      const vencEnMes = mov.vencimiento && mov.vencimiento.startsWith(filterMes);
+      const pagoEnMes = mov.fecha_pago && mov.fecha_pago.startsWith(filterMes);
 
-        // Arrastre: facturas no resueltas (no pagadas, no débito automático)
-        // con vencimiento en un mes ANTERIOR al filtrado también se muestran,
-        // para no perderlas de vista. Las de meses futuros quedan ocultas
-        // hasta que les toque su propio mes.
-        const noResuelto = mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO';
-        const mesVencimiento = mov.vencimiento ? mov.vencimiento.slice(0, 7) : null;
-        const esDeMesAnterior = mesVencimiento && mesVencimiento < filterMes;
-        const arrastre = noResuelto && esDeMesAnterior;
+      const noResuelto = mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO';
+      const mesVencimiento = mov.vencimiento ? mov.vencimiento.slice(0, 7) : null;
+      const esDeMesAnterior = mesVencimiento && mesVencimiento < filterMes;
+      const arrastre = noResuelto && esDeMesAnterior;
 
-        if (!vencEnMes && !pagoEnMes && !arrastre) return false;
-      }
+      if (!vencEnMes && !pagoEnMes && !arrastre) return false;
+    }
 
-      if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
-      if (filterConsorcio !== 'TODOS' && mov.consorcio_id !== filterConsorcio) return false;
-      if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO' && esVencido(mov.vencimiento))) return false;
-      if (filtroTiempoRango === 'HOY' && !esHoy(mov.vencimiento)) return false;
-      if (filtroTiempoRango === 'SEMANA' && !esEstaSemana(mov.vencimiento)) return false;
-      return true;
-    });
+    if (filterEstado !== 'TODOS' && mov.estado !== filterEstado) return false;
+    if (filterConsorcio !== 'TODOS' && mov.consorcio_id !== filterConsorcio) return false;
+    if (filtroTiempoRango === 'VENCIDO' && !(mov.estado !== 'PAGADO' && mov.estado !== 'DEBITO_AUTOMATICO' && esVencido(mov.vencimiento))) return false;
+    if (filtroTiempoRango === 'HOY' && !esHoy(mov.vencimiento)) return false;
+    if (filtroTiempoRango === 'SEMANA' && !esEstaSemana(mov.vencimiento)) return false;
+    return true;
+  });
+
+  // ...resto de la función igual (comparadores, sort, etc.)
 
     // Servicios antes que proveedores, luego alfabético
     const compararTipo = (a, b) => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import MovimientoRow from './MovimientoRow';
 import NotaModal from './NotaModal';
 import PagoParcialModal from './PagoParcialModal';
+import ReconciliacionModal from './ReconciliacionModal';
 
 export default function MovimientosTable({
   movimientos,
@@ -32,9 +33,18 @@ export default function MovimientosTable({
 }) {
   const [notaModalMov, setNotaModalMov] = useState(null);
   const [pagoParcialModalMov, setPagoParcialModalMov] = useState(null);
+  const [reconciliacionModal, setReconciliacionModal] = useState(null); // { factura, candidatos, pendiente }
 
   function nombreConsorcio(consorcioId) {
     return consorcios.find((c) => c.id === consorcioId)?.nombre || '-';
+  }
+
+  async function confirmarReconciliacion(candidato, monto) {
+    await onAgregarPagoParcial(reconciliacionModal.factura.id, monto, candidato.fecha, null, candidato.id);
+  }
+
+  async function descartarReconciliacion(candidato) {
+    await onDescartarSugerencia(reconciliacionModal.factura.id, candidato.id);
   }
 
   return (
@@ -117,27 +127,30 @@ export default function MovimientosTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-           {movimientos.map((mov) => (
-   <MovimientoRow
-    key={mov.id}
-    movimiento={mov}
-    consorcioNombre={nombreConsorcio(mov.consorcio_id)}
-    servicios={servicios}
-    proveedores={proveedores}
-    pagosParciales={pagosParciales}
-    libroDiarioParaReconciliar={libroDiarioParaReconciliar}
-    libroDiarioPeriodos={libroDiarioPeriodos}
-    reconciliacionesDescartadas={reconciliacionesDescartadas}
-    onDescartarSugerencia={onDescartarSugerencia}
-    seleccionado={seleccionados.has(mov.id)}
-    onToggleSeleccion={onToggleSeleccion}
-    onGuardar={onGuardarMovimiento}
-    onEliminar={onEliminarMovimiento}
-    onAbrirNota={setNotaModalMov}
-    onAbrirPagoParcial={setPagoParcialModalMov}
-    onAgregarPagoParcial={onAgregarPagoParcial}
-  />
-))}
+            {movimientos.map((mov) => (
+              <MovimientoRow
+                key={mov.id}
+                movimiento={mov}
+                consorcioNombre={nombreConsorcio(mov.consorcio_id)}
+                servicios={servicios}
+                proveedores={proveedores}
+                pagosParciales={pagosParciales}
+                libroDiarioParaReconciliar={libroDiarioParaReconciliar}
+                libroDiarioPeriodos={libroDiarioPeriodos}
+                reconciliacionesDescartadas={reconciliacionesDescartadas}
+                onDescartarSugerencia={onDescartarSugerencia}
+                seleccionado={seleccionados.has(mov.id)}
+                onToggleSeleccion={onToggleSeleccion}
+                onGuardar={onGuardarMovimiento}
+                onEliminar={onEliminarMovimiento}
+                onAbrirNota={setNotaModalMov}
+                onAbrirPagoParcial={setPagoParcialModalMov}
+                onAgregarPagoParcial={onAgregarPagoParcial}
+                onAbrirReconciliacion={(factura, candidatos, pendiente) =>
+                  setReconciliacionModal({ factura, candidatos, pendiente })
+                }
+              />
+            ))}
             {movimientos.length === 0 && (
               <tr>
                 <td colSpan={8} className="p-8 text-center text-slate-400 text-sm">
@@ -164,6 +177,17 @@ export default function MovimientosTable({
           onAgregar={onAgregarPagoParcial}
           onEliminar={onEliminarPagoParcial}
           onClose={() => setPagoParcialModalMov(null)}
+        />
+      )}
+
+      {reconciliacionModal && (
+        <ReconciliacionModal
+          factura={reconciliacionModal.factura}
+          candidatos={reconciliacionModal.candidatos}
+          pendiente={reconciliacionModal.pendiente}
+          onConfirmar={confirmarReconciliacion}
+          onDescartar={descartarReconciliacion}
+          onClose={() => setReconciliacionModal(null)}
         />
       )}
     </div>
