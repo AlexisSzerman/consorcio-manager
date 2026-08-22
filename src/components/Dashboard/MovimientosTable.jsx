@@ -39,9 +39,16 @@ export default function MovimientosTable({
     return consorcios.find((c) => c.id === consorcioId)?.nombre || '-';
   }
 
-  async function confirmarReconciliacion(candidato, monto) {
-    await onAgregarPagoParcial(reconciliacionModal.factura.id, monto, candidato.fecha, null, candidato.id);
-  }
+async function confirmarReconciliacion(candidato, monto) {
+  await onAgregarPagoParcial(
+    reconciliacionModal.factura.id,
+    monto,
+    candidato.fecha,
+    null,
+    candidato.id,
+    true, // forzarPagado: toda confirmación desde reconciliación cierra la factura
+  );
+}
 
   async function descartarReconciliacion(candidato) {
     await onDescartarSugerencia(reconciliacionModal.factura.id, candidato.id);

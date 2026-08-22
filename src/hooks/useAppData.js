@@ -30,34 +30,37 @@ export function useAppData() {
     setError(null);
     try {
       const [
-  { data: serviciosData, error: eServicios },
-  { data: proveedoresData, error: eProveedores },
-  { data: consorciosData, error: eConsorcios },
-  { data: consServData, error: eConsServ },
-  { data: consProvData, error: eConsProv },
-  { data: movimientosData, error: eMovimientos },
-  { data: pagosParcialesData, error: ePagos },
-  { data: unidadesData, error: eUnidades },
-  { data: periodosData, error: ePeriodos },
-  { data: ldReconciliarData, error: eLdReconciliar },
-  { data: descartadasData, error: eDescartadas },   // ⬅️ ¿está esta línea?
-] = await Promise.all([
-  supabase.from('servicios').select('*').order('nombre'),
-  supabase.from('proveedores').select('*').order('nombre'),
-  supabase.from('consorcios').select('*').order('nombre'),
-  supabase.from('consorcio_servicios').select('*'),
-  supabase.from('consorcio_proveedores').select('*'),
-  supabase.from('movimientos').select('*').order('vencimiento'),
-  supabase.from('pagos_parciales').select('*').order('fecha'),
-  supabase.from('unidades').select('*').order('numero_unidad'),
-  supabase.from('libro_diario_periodos').select('*').order('periodo', { ascending: false }),
-  supabase
-    .from('libro_diario_movimientos')
-    .select('*')
-    .eq('categoria', 'proveedor')
-    .eq('tipo', 'egreso'),
-  supabase.from('reconciliaciones_descartadas').select('*'),   // ⬅️ ¿está esta línea?
-]);
+        { data: serviciosData, error: eServicios },
+        { data: proveedoresData, error: eProveedores },
+        { data: consorciosData, error: eConsorcios },
+        { data: consServData, error: eConsServ },
+        { data: consProvData, error: eConsProv },
+        { data: movimientosData, error: eMovimientos },
+        { data: pagosParcialesData, error: ePagos },
+        { data: unidadesData, error: eUnidades },
+        { data: periodosData, error: ePeriodos },
+        { data: ldReconciliarData, error: eLdReconciliar },
+        { data: descartadasData, error: eDescartadas }, // ⬅️ ¿está esta línea?
+      ] = await Promise.all([
+        supabase.from("servicios").select("*").order("nombre"),
+        supabase.from("proveedores").select("*").order("nombre"),
+        supabase.from("consorcios").select("*").order("nombre"),
+        supabase.from("consorcio_servicios").select("*"),
+        supabase.from("consorcio_proveedores").select("*"),
+        supabase.from("movimientos").select("*").order("vencimiento"),
+        supabase.from("pagos_parciales").select("*").order("fecha"),
+        supabase.from("unidades").select("*").order("numero_unidad"),
+        supabase
+          .from("libro_diario_periodos")
+          .select("*")
+          .order("periodo", { ascending: false }),
+        supabase
+          .from("libro_diario_movimientos")
+          .select("*")
+          .eq("categoria", "proveedor")
+          .eq("tipo", "egreso"),
+        supabase.from("reconciliaciones_descartadas").select("*"), // ⬅️ ¿está esta línea?
+      ]);
 
       const firstError =
         eServicios ||
@@ -631,9 +634,8 @@ export function useAppData() {
     [servicios, proveedores],
   );
 
-  // Recalcula y persiste el estado del movimiento según la suma de pagos parciales
   const recalcularEstadoPorPagos = useCallback(
-    async (movimientoId, pagosDeEsteMovimiento) => {
+    async (movimientoId, pagosDeEsteMovimiento, forzarPagado = false) => {
       const movimiento = movimientos.find((m) => m.id === movimientoId);
       if (!movimiento) return;
 
@@ -648,15 +650,15 @@ export function useAppData() {
       if (totalPagado <= 0) {
         nuevoEstado = "PENDIENTE";
         nuevaFechaPago = null;
-      } else if (totalPagado < Number(movimiento.monto)) {
-        nuevoEstado = "PARCIAL";
-        nuevaFechaPago = null;
-      } else {
+      } else if (forzarPagado || totalPagado >= Number(movimiento.monto)) {
         nuevoEstado = "PAGADO";
         nuevaFechaPago = pagosDeEsteMovimiento.reduce(
           (max, p) => (!max || p.fecha > max ? p.fecha : max),
           null,
         );
+      } else {
+        nuevoEstado = "PARCIAL";
+        nuevaFechaPago = null;
       }
 
       if (
@@ -685,6 +687,7 @@ export function useAppData() {
       fecha,
       nota,
       libroDiarioMovimientoId = null,
+      forzarPagado = false,
     ) => {
       const { data: nuevoPago, error } = await supabase
         .from("pagos_parciales")
@@ -705,7 +708,11 @@ export function useAppData() {
       const pagosDeEsteMovimiento = pagosActualizados.filter(
         (p) => p.movimiento_id === movimientoId,
       );
-      await recalcularEstadoPorPagos(movimientoId, pagosDeEsteMovimiento);
+      await recalcularEstadoPorPagos(
+        movimientoId,
+        pagosDeEsteMovimiento,
+        forzarPagado,
+      );
 
       return nuevoPago;
     },
@@ -730,16 +737,22 @@ export function useAppData() {
     },
     [pagosParciales, recalcularEstadoPorPagos],
   );
-  const descartarSugerenciaPago = useCallback(async (facturaId, libroDiarioMovimientoId) => {
-  const { data, error } = await supabase
-    .from('reconciliaciones_descartadas')
-    .insert({ factura_id: facturaId, libro_diario_movimiento_id: libroDiarioMovimientoId })
-    .select()
-    .single();
-  if (error) throw error;
-  setReconciliacionesDescartadas((prev) => [...prev, data]);
-  return data;
-}, []);
+  const descartarSugerenciaPago = useCallback(
+    async (facturaId, libroDiarioMovimientoId) => {
+      const { data, error } = await supabase
+        .from("reconciliaciones_descartadas")
+        .insert({
+          factura_id: facturaId,
+          libro_diario_movimiento_id: libroDiarioMovimientoId,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setReconciliacionesDescartadas((prev) => [...prev, data]);
+      return data;
+    },
+    [],
+  );
 
   const updateMovimiento = useCallback(async (id, campos) => {
     const { data, error } = await supabase
@@ -849,49 +862,49 @@ export function useAppData() {
 
   return {
     loading,
-  error,
-  servicios,
-  proveedores,
-  consorcios,
-  movimientos,
-  pagosParciales,
-  unidades,
-  libroDiarioPeriodos,
-  libroDiarioMovimientosPorPeriodo,
-  libroDiarioParaReconciliar,
-  reconciliacionesDescartadas,
-  ultimaActualizacionGlobal,
-  recargar: cargarTodo,
-  addServicio,
-  deleteServicio,
-  updateServicio,
-  addProveedor,
-  deleteProveedor,
-  updateProveedor,
-  addConsorcio,
-  updateConsorcio,
-  addUnidad,
-  updateUnidad,
-  deleteUnidad,
-  addPeriodoLibroDiario,
-  updatePeriodoLibroDiario,
-  deletePeriodoLibroDiario,
-  cargarMovimientosLibroDiario,
-  addMovimientoLibroDiario,
-  addMovimientosLibroDiarioBulk,
-  updateMovimientoLibroDiario,
-  deleteMovimientoLibroDiario,
-  addCuentaServicio,
-  deleteCuentaServicio,
-  addCuentaProveedor,
-  deleteCuentaProveedor,
-  updateMovimiento,
-  addMovimientoManual,
-  addPagoParcial,
-  deletePagoParcial,
-  descartarSugerenciaPago,
-  updateNotaMovimiento,
-  deleteMovimiento,
-  generarMes,
+    error,
+    servicios,
+    proveedores,
+    consorcios,
+    movimientos,
+    pagosParciales,
+    unidades,
+    libroDiarioPeriodos,
+    libroDiarioMovimientosPorPeriodo,
+    libroDiarioParaReconciliar,
+    reconciliacionesDescartadas,
+    ultimaActualizacionGlobal,
+    recargar: cargarTodo,
+    addServicio,
+    deleteServicio,
+    updateServicio,
+    addProveedor,
+    deleteProveedor,
+    updateProveedor,
+    addConsorcio,
+    updateConsorcio,
+    addUnidad,
+    updateUnidad,
+    deleteUnidad,
+    addPeriodoLibroDiario,
+    updatePeriodoLibroDiario,
+    deletePeriodoLibroDiario,
+    cargarMovimientosLibroDiario,
+    addMovimientoLibroDiario,
+    addMovimientosLibroDiarioBulk,
+    updateMovimientoLibroDiario,
+    deleteMovimientoLibroDiario,
+    addCuentaServicio,
+    deleteCuentaServicio,
+    addCuentaProveedor,
+    deleteCuentaProveedor,
+    updateMovimiento,
+    addMovimientoManual,
+    addPagoParcial,
+    deletePagoParcial,
+    descartarSugerenciaPago,
+    updateNotaMovimiento,
+    deleteMovimiento,
+    generarMes,
   };
 }

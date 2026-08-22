@@ -97,6 +97,11 @@ export default function MovimientoRow({
   const pagosDeEstaFactura = pagosParciales.filter((p) => p.movimiento_id === movimiento.id);
   const totalPagadoParcial = pagosDeEstaFactura.reduce((sum, p) => sum + Number(p.monto), 0);
   const pendienteParcial = Math.max(Number(movimiento.monto) - totalPagadoParcial, 0);
+  // El ícono de "pagos parciales" refleja el ESTADO de la factura, no la mera
+  // existencia de filas en pagos_parciales: una confirmación de reconciliación
+  // también inserta un pago pero fuerza el estado a PAGADO, y no debe quedar
+  // marcada como parcial visualmente.
+  const tieneParcialActivo = movimiento.estado === 'PARCIAL';
 
   const candidatosPago =
     movimiento.tipo === 'proveedor'
@@ -234,7 +239,7 @@ export default function MovimientoRow({
               onClick={() => onAbrirPagoParcial(movimiento)}
               title="Pagos parciales"
               className={`w-8 h-8 flex items-center justify-center rounded-lg border ${
-                totalPagadoParcial > 0
+                tieneParcialActivo
                   ? 'bg-orange-50 border-orange-200 text-orange-600'
                   : 'bg-slate-50 border-slate-200 text-slate-400'
               }`}
@@ -321,7 +326,7 @@ export default function MovimientoRow({
             onClick={() => onAbrirPagoParcial(movimiento)}
             title="Pagos parciales"
             className={`w-8 h-8 flex items-center justify-center rounded-lg border ${
-              totalPagadoParcial > 0
+              tieneParcialActivo
                 ? 'bg-orange-50 border-orange-200 text-orange-600'
                 : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'
             }`}
