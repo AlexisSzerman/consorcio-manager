@@ -97,11 +97,17 @@ export default function MovimientoRow({
   const pagosDeEstaFactura = pagosParciales.filter((p) => p.movimiento_id === movimiento.id);
   const totalPagadoParcial = pagosDeEstaFactura.reduce((sum, p) => sum + Number(p.monto), 0);
   const pendienteParcial = Math.max(Number(movimiento.monto) - totalPagadoParcial, 0);
-  // El ícono de "pagos parciales" refleja el ESTADO de la factura, no la mera
-  // existencia de filas en pagos_parciales: una confirmación de reconciliación
-  // también inserta un pago pero fuerza el estado a PAGADO, y no debe quedar
-  // marcada como parcial visualmente.
-  const tieneParcialActivo = movimiento.estado === 'PARCIAL';
+  // El ícono de "pagos parciales" queda naranja si:
+  // - la factura está PARCIAL ahora, o
+  // - está PAGADO pero tuvo al menos un pago manual (libro_diario_movimiento_id
+  //   null), señal de que hubo un historial real de pagos parciales para revisar.
+  // Los pagos que vienen de una confirmación de reconciliación siempre traen
+  // libro_diario_movimiento_id seteado y fuerzan el estado a PAGADO de una sola
+  // vez, así que no cuentan como "historial parcial" y no encienden el ícono.
+  const tieneParcialActivo =
+    movimiento.estado === 'PARCIAL' ||
+    (movimiento.estado === 'PAGADO' &&
+      pagosDeEstaFactura.some((p) => !p.libro_diario_movimiento_id));
 
   const candidatosPago =
     movimiento.tipo === 'proveedor'
