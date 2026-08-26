@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PeriodoDetalle from './PeriodoDetalle';
 import NuevoPeriodoModal from './NuevoPeriodoModal';
 import ExportarLibroDiarioBoton from './ExportarLibroDiarioBoton';
+import { formatFechaDDMMYYYY } from '../../utils/dateHelpers';
 
 const ESTADO_INFO = {
   ok: { label: 'Coincide', color: 'bg-emerald-100 text-emerald-800', icon: 'fa-circle-check' },
@@ -19,6 +20,11 @@ function calcularEstadoPeriodo(periodo, movimientos) {
   const saldoCalculado = Number(periodo.saldo_inicial_declarado) + totalIngresos - totalEgresos;
   const diff = Math.abs(saldoCalculado - Number(periodo.saldo_final_declarado));
   return diff < 0.01 ? 'ok' : 'diferencia';
+}
+
+function calcularUltimoMovimiento(movimientos) {
+  if (!movimientos || movimientos.length === 0) return null;
+  return movimientos.reduce((max, m) => (m.fecha > max ? m.fecha : max), movimientos[0].fecha);
 }
 
 export default function LibroDiarioView({
@@ -141,18 +147,42 @@ export default function LibroDiarioView({
           const movs = movsCargados || [];
           const estado = cargando ? 'cargando' : calcularEstadoPeriodo(periodo, movs);
           const info = ESTADO_INFO[estado];
+          const ultimoMovimiento = calcularUltimoMovimiento(movs);
+          const ultimoChequeo = periodo.ultima_verificacion_banco;
           return (
             <div
               key={periodo.id}
               onClick={() => abrirPeriodo(periodo)}
-              className="p-4 flex justify-between items-center hover:bg-slate-50 cursor-pointer"
+              className={`p-4 flex justify-between items-center cursor-pointer transition-colors ${
+                periodo.cerrado ? 'bg-slate-300 hover:bg-slate-400' : 'hover:bg-slate-50'
+              }`}
             >
               <div>
-                <p className="font-semibold text-slate-800 flex items-center gap-2">
+                <p
+                  className={`font-semibold flex items-center gap-2 ${
+                    periodo.cerrado ? 'text-slate-700' : 'text-slate-900'
+                  }`}
+                >
                   {periodo.periodo} — {periodo.cuenta}
-                  {periodo.cerrado && <i className="fa-solid fa-lock text-slate-400 text-xs" title="Cerrado"></i>}
+                  {periodo.cerrado && <i className="fa-solid fa-lock text-slate-600 text-xs" title="Cerrado"></i>}
                 </p>
-                <p className="text-xs text-slate-400">{periodo.banco || 'Sin banco asignado'}</p>
+                <p className="text-xs text-slate-600">{periodo.banco || 'Sin banco asignado'}</p>
+                {(ultimoMovimiento || ultimoChequeo) && (
+                  <p className="text-[11px] text-slate-600 mt-0.5 flex items-center gap-3 flex-wrap">
+                    {ultimoMovimiento && (
+                      <span title="Fecha del último movimiento cargado en este período">
+                        <i className="fa-solid fa-arrow-right-arrow-left mr-1"></i>
+                        Último mov.: {formatFechaDDMMYYYY(ultimoMovimiento)}
+                      </span>
+                    )}
+                    {ultimoChequeo && (
+                      <span title="Última vez que se verificó el saldo contra el banco">
+                        <i className="fa-solid fa-magnifying-glass mr-1"></i>
+                        Último chequeo: {formatFechaDDMMYYYY(ultimoChequeo)}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
               <span className={`text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1 ${info.color}`}>
                 <i className={`fa-solid ${info.icon}`}></i> {info.label}
