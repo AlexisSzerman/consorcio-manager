@@ -64,11 +64,9 @@ export default function EditarMovimientoLibroModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
     >
       <div
         className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-3 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold text-slate-800">
           Editar movimiento

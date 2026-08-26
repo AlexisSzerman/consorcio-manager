@@ -59,8 +59,7 @@ export default function ReconciliacionModal({ factura, candidatos, pendiente, on
         {/* Body */}
         <div className="p-5 overflow-y-auto space-y-3">
           <p className="text-xs text-slate-500">
-            Movimientos del Libro Diario del mismo proveedor, todavía sin vincular a ningún pago. Si ninguno cierra
-            el monto exacto, cargalo como pago parcial desde el ícono correspondiente en la fila.
+            Movimiento del Libro Diario del mismo proveedor. Verificar número de factura y monto.
           </p>
 
           <div className="space-y-2">
