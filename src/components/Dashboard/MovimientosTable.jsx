@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import MovimientoRow from './MovimientoRow';
 import NotaModal from './NotaModal';
 import PagoParcialModal from './PagoParcialModal';
 import ReconciliacionModal from './ReconciliacionModal';
+import { buscarCandidatosPago } from '../../utils/reconciliacion';
 
 export default function MovimientosTable({
   movimientos,
@@ -33,25 +34,49 @@ export default function MovimientosTable({
 }) {
   const [notaModalMov, setNotaModalMov] = useState(null);
   const [pagoParcialModalMov, setPagoParcialModalMov] = useState(null);
-  const [reconciliacionModal, setReconciliacionModal] = useState(null); // { factura, candidatos, pendiente }
+  // Ahora guardamos solo la factura, no candidatos/pendiente congelados
+  const [facturaReconciliando, setFacturaReconciliando] = useState(null);
+
+  // Se recalcula en cada render, así que responde a cambios en
+  // reconciliacionesDescartadas / pagosParciales / libroDiarioParaReconciliar
+  const candidatosReconciliacion = useMemo(() => {
+    if (!facturaReconciliando) return [];
+    return buscarCandidatosPago({
+      factura: facturaReconciliando,
+      movimientosLibroDiario: libroDiarioParaReconciliar,
+      libroDiarioPeriodos,
+      pagosParciales,
+      descartadas: reconciliacionesDescartadas,
+    });
+  }, [facturaReconciliando, libroDiarioParaReconciliar, libroDiarioPeriodos, pagosParciales, reconciliacionesDescartadas]);
+
+  const pendienteReconciliacion = useMemo(() => {
+    if (!facturaReconciliando) return 0;
+    const totalPagado = pagosParciales
+      .filter((p) => p.movimiento_id === facturaReconciliando.id)
+      .reduce((s, p) => s + Number(p.monto), 0);
+    return Number(facturaReconciliando.monto) - totalPagado;
+  }, [facturaReconciliando, pagosParciales]);
 
   function nombreConsorcio(consorcioId) {
     return consorcios.find((c) => c.id === consorcioId)?.nombre || '-';
   }
 
-async function confirmarReconciliacion(candidato, monto) {
-  await onAgregarPagoParcial(
-    reconciliacionModal.factura.id,
-    monto,
-    candidato.fecha,
-    null,
-    candidato.id,
-    true, // forzarPagado: toda confirmación desde reconciliación cierra la factura
-  );
-}
+  async function confirmarReconciliacion(candidato, monto) {
+    await onAgregarPagoParcial(
+      facturaReconciliando.id,
+      monto,
+      candidato.fecha,
+      null,
+      candidato.id,
+      true,
+    );
+  }
 
   async function descartarReconciliacion(candidato) {
-    await onDescartarSugerencia(reconciliacionModal.factura.id, candidato.id);
+    await onDescartarSugerencia(facturaReconciliando.id, candidato.id);
+    // no hace falta tocar el state acá: candidatosReconciliacion se
+    // recalcula solo apenas reconciliacionesDescartadas cambie arriba
   }
 
   return (
@@ -134,6 +159,7 @@ async function confirmarReconciliacion(candidato, monto) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
+            
             {movimientos.map((mov) => (
               <MovimientoRow
                 key={mov.id}
@@ -153,9 +179,7 @@ async function confirmarReconciliacion(candidato, monto) {
                 onAbrirNota={setNotaModalMov}
                 onAbrirPagoParcial={setPagoParcialModalMov}
                 onAgregarPagoParcial={onAgregarPagoParcial}
-                onAbrirReconciliacion={(factura, candidatos, pendiente) =>
-                  setReconciliacionModal({ factura, candidatos, pendiente })
-                }
+                onAbrirReconciliacion={(factura) => setFacturaReconciliando(factura)}
               />
             ))}
             {movimientos.length === 0 && (
@@ -187,14 +211,14 @@ async function confirmarReconciliacion(candidato, monto) {
         />
       )}
 
-      {reconciliacionModal && (
+       {facturaReconciliando && (
         <ReconciliacionModal
-          factura={reconciliacionModal.factura}
-          candidatos={reconciliacionModal.candidatos}
-          pendiente={reconciliacionModal.pendiente}
+          factura={facturaReconciliando}
+          candidatos={candidatosReconciliacion}
+          pendiente={pendienteReconciliacion}
           onConfirmar={confirmarReconciliacion}
           onDescartar={descartarReconciliacion}
-          onClose={() => setReconciliacionModal(null)}
+          onClose={() => setFacturaReconciliando(null)}
         />
       )}
     </div>
