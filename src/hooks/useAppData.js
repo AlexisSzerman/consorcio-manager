@@ -25,114 +25,128 @@ export function useAppData() {
   const [reconciliacionesDescartadas, setReconciliacionesDescartadas] =
     useState([]);
 
-  const cargarTodo = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [
-        { data: serviciosData, error: eServicios },
-        { data: proveedoresData, error: eProveedores },
-        { data: consorciosData, error: eConsorcios },
-        { data: consServData, error: eConsServ },
-        { data: consProvData, error: eConsProv },
-        { data: movimientosData, error: eMovimientos },
-        { data: pagosParcialesData, error: ePagos },
-        { data: unidadesData, error: eUnidades },
-        { data: periodosData, error: ePeriodos },
-        { data: ldReconciliarData, error: eLdReconciliar },
-        { data: descartadasData, error: eDescartadas }, // ⬅️ ¿está esta línea?
-      ] = await Promise.all([
-        supabase.from("servicios").select("*").order("nombre"),
-        supabase.from("proveedores").select("*").order("nombre"),
-        supabase.from("consorcios").select("*").order("nombre"),
-        supabase.from("consorcio_servicios").select("*"),
-        supabase.from("consorcio_proveedores").select("*"),
-        supabase.from("movimientos").select("*").order("vencimiento"),
-        supabase.from("pagos_parciales").select("*").order("fecha"),
-        supabase.from("unidades").select("*").order("numero_unidad"),
-        supabase
-          .from("libro_diario_periodos")
-          .select("*")
-          .order("periodo", { ascending: false }),
-        supabase
-          .from("libro_diario_movimientos")
-          .select("*")
-          .eq("categoria", "proveedor")
-          .eq("tipo", "egreso"),
-        supabase.from("reconciliaciones_descartadas").select("*"), // ⬅️ ¿está esta línea?
-      ]);
+  const cargarTodo = useCallback(async (intento = 0) => {
+  setLoading(true);
+  setError(null);
+  try {
+    const [
+      { data: serviciosData, error: eServicios },
+      { data: proveedoresData, error: eProveedores },
+      { data: consorciosData, error: eConsorcios },
+      { data: consServData, error: eConsServ },
+      { data: consProvData, error: eConsProv },
+      { data: movimientosData, error: eMovimientos },
+      { data: pagosParcialesData, error: ePagos },
+      { data: unidadesData, error: eUnidades },
+      { data: periodosData, error: ePeriodos },
+      { data: ldReconciliarData, error: eLdReconciliar },
+      { data: descartadasData, error: eDescartadas },
+    ] = await Promise.all([
+      supabase.from("servicios").select("*").order("nombre"),
+      supabase.from("proveedores").select("*").order("nombre"),
+      supabase.from("consorcios").select("*").order("nombre"),
+      supabase.from("consorcio_servicios").select("*"),
+      supabase.from("consorcio_proveedores").select("*"),
+      supabase.from("movimientos").select("*").order("vencimiento"),
+      supabase.from("pagos_parciales").select("*").order("fecha"),
+      supabase.from("unidades").select("*").order("numero_unidad"),
+      supabase
+        .from("libro_diario_periodos")
+        .select("*")
+        .order("periodo", { ascending: false }),
+      supabase
+        .from("libro_diario_movimientos")
+        .select("*")
+        .eq("categoria", "proveedor")
+        .eq("tipo", "egreso"),
+      supabase.from("reconciliaciones_descartadas").select("*"),
+    ]);
 
-      const firstError =
-        eServicios ||
-        eProveedores ||
-        eConsorcios ||
-        eConsServ ||
-        eConsProv ||
-        eMovimientos ||
-        ePagos ||
-        eUnidades ||
-        ePeriodos ||
-        eLdReconciliar ||
-        eDescartadas;
-      if (firstError) throw firstError;
+    const firstError =
+      eServicios ||
+      eProveedores ||
+      eConsorcios ||
+      eConsServ ||
+      eConsProv ||
+      eMovimientos ||
+      ePagos ||
+      eUnidades ||
+      ePeriodos ||
+      eLdReconciliar ||
+      eDescartadas;
+    if (firstError) throw firstError;
 
-      const consorciosConRelaciones = (consorciosData || []).map((c) => ({
-        ...c,
-        serviciosCuentas: (consServData || [])
-          .filter((r) => r.consorcio_id === c.id)
-          .map((r) => {
-            const s = (serviciosData || []).find(
-              (serv) => serv.id === r.servicio_id,
-            );
-            return {
-              id: r.id,
-              servicio_id: r.servicio_id,
-              alias: r.alias || "",
-              nombre: s?.nombre || "(servicio eliminado)",
-              link: s?.link || "",
-            };
-          }),
-        proveedoresCuentas: (consProvData || [])
-          .filter((r) => r.consorcio_id === c.id)
-          .map((r) => {
-            const p = (proveedoresData || []).find(
-              (prov) => prov.id === r.proveedor_id,
-            );
-            return {
-              id: r.id,
-              proveedor_id: r.proveedor_id,
-              alias: r.alias || "",
-              nombre: p?.nombre || "(proveedor eliminado)",
-              mail: p?.mail || "",
-            };
-          }),
-        unidades: (unidadesData || [])
-          .filter((u) => u.consorcio_id === c.id)
-          .map((u) => ({
-            id: u.id,
-            numero_unidad: u.numero_unidad,
-            propietario_nombre: u.propietario_nombre,
-            alias_reconocimiento: u.alias_reconocimiento || "",
-          })),
-      }));
+    const consorciosConRelaciones = (consorciosData || []).map((c) => ({
+      ...c,
+      serviciosCuentas: (consServData || [])
+        .filter((r) => r.consorcio_id === c.id)
+        .map((r) => {
+          const s = (serviciosData || []).find(
+            (serv) => serv.id === r.servicio_id,
+          );
+          return {
+            id: r.id,
+            servicio_id: r.servicio_id,
+            alias: r.alias || "",
+            nombre: s?.nombre || "(servicio eliminado)",
+            link: s?.link || "",
+          };
+        }),
+      proveedoresCuentas: (consProvData || [])
+        .filter((r) => r.consorcio_id === c.id)
+        .map((r) => {
+          const p = (proveedoresData || []).find(
+            (prov) => prov.id === r.proveedor_id,
+          );
+          return {
+            id: r.id,
+            proveedor_id: r.proveedor_id,
+            alias: r.alias || "",
+            nombre: p?.nombre || "(proveedor eliminado)",
+            mail: p?.mail || "",
+          };
+        }),
+      unidades: (unidadesData || [])
+        .filter((u) => u.consorcio_id === c.id)
+        .map((u) => ({
+          id: u.id,
+          numero_unidad: u.numero_unidad,
+          propietario_nombre: u.propietario_nombre,
+          alias_reconocimiento: u.alias_reconocimiento || "",
+        })),
+    }));
 
-      setServicios(serviciosData || []);
-      setProveedores(proveedoresData || []);
-      setConsorcios(consorciosConRelaciones);
-      setMovimientos(movimientosData || []);
-      setPagosParciales(pagosParcialesData || []);
-      setUnidades(unidadesData || []);
-      setLibroDiarioPeriodos(periodosData || []);
-      setLibroDiarioParaReconciliar(ldReconciliarData || []);
-      setLibroDiarioParaReconciliar(ldReconciliarData || []);
-      setReconciliacionesDescartadas(descartadasData || []);
-    } catch (err) {
-      console.error("Error cargando datos:", err);
-      setError(err.message || "Error al cargar los datos");
-    } finally {
-      setLoading(false);
+    setServicios(serviciosData || []);
+    setProveedores(proveedoresData || []);
+    setConsorcios(consorciosConRelaciones);
+    setMovimientos(movimientosData || []);
+    setPagosParciales(pagosParcialesData || []);
+    setUnidades(unidadesData || []);
+    setLibroDiarioPeriodos(periodosData || []);
+    setLibroDiarioParaReconciliar(ldReconciliarData || []);
+    setReconciliacionesDescartadas(descartadasData || []);
+  } catch (err) {
+    console.error("Error cargando datos:", err);
+
+    // "JWT issued at future" es casi siempre el reloj del sistema operativo
+    // todavía desincronizado (recién arrancó / volvió de suspender) y no
+    // un problema real de la sesión. Reintentamos forzando un refresh del
+    // token, dándole tiempo al SO a sincronizar el reloj vía NTP.
+    const esErrorDeReloj =
+      typeof err.message === "string" &&
+      err.message.toLowerCase().includes("issued at future");
+
+    if (esErrorDeReloj && intento < 2) {
+      await supabase.auth.refreshSession();
+      await new Promise((resolve) => setTimeout(resolve, 1500 * (intento + 1)));
+      return cargarTodo(intento + 1);
     }
-  }, []);
+
+    setError(err.message || "Error al cargar los datos");
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     cargarTodo();
