@@ -29,14 +29,35 @@ function resolverNombreCategoria(m, { proveedores, unidades, servicios }) {
   }
 }
 
+// Saca un nombre "limpio" para usar en el nombre del archivo:
+// sin tildes, sin espacios, sin caracteres especiales.
+function slugificar(texto) {
+  return String(texto)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // saca tildes/diacríticos
+    .replace(/[^a-zA-Z0-9]+/g, '')   // saca todo lo que no sea letra o número
+    .trim();
+}
+
 /**
  * @param {Array} periodosConMovimientos - [{ periodo, movimientos }, ...]
- *   'periodo' es el objeto período (con .periodo, .cuenta, .banco, .saldo_inicial, .saldo_final)
+ *   'periodo' es el objeto período (con .periodo, .cuenta, .banco, .saldo_inicial, .saldo_final, .consorcio_id)
  *   'movimientos' son los movimientos de ESE período únicamente
- * @param {Object} catalogos - { proveedores, unidades, servicios } (compartidos entre todos los períodos)
+ * @param {Object} catalogos - { proveedores, unidades, servicios, consorcios } (compartidos entre todos los períodos)
  */
-export function exportarLibroDiarioExcel(periodosConMovimientos, { proveedores, unidades, servicios }) {
+export function exportarLibroDiarioExcel(periodosConMovimientos, { proveedores, unidades, servicios, consorcios }) {
   const esMultiple = periodosConMovimientos.length > 1;
+
+  // --- Resolver nombre(s) de consorcio presentes en la exportación ---
+  const idsConsorcios = [
+    ...new Set(periodosConMovimientos.map(({ periodo }) => periodo.consorcio_id)),
+  ];
+  const nombresConsorcios = idsConsorcios.map(
+    (id) => consorcios.find((c) => c.id === id)?.nombre || 'ConsorcioDesconocido'
+  );
+  // Caso normal: todos los períodos son del mismo consorcio -> un solo nombre.
+  // Caso borde: si se mezclan varios consorcios, se unen con "_".
+  const nombreConsorcioArchivo = slugificar(nombresConsorcios.join('_'));
 
   // --- Hoja 1: Resumen (una fila por período + totales generales) ---
   const filasResumen = periodosConMovimientos.map(({ periodo, movimientos }) => {
@@ -79,22 +100,23 @@ export function exportarLibroDiarioExcel(periodosConMovimientos, { proveedores, 
   }
 
   // --- Hoja 2: Detalle de movimientos (todos los períodos juntos) ---
-const filasDetalle = periodosConMovimientos.flatMap(({ periodo, movimientos }) =>
-  [...movimientos]
-    .sort((a, b) => a.orden_original - b.orden_original)
-    .map((m) => ({
-      Período: periodo.periodo,
-      Fecha: formatFechaDDMMYYYY(m.fecha),
-      Detalle: m.detalle,
-      Ingreso: m.tipo === 'ingreso' ? m.monto : '',
-      Egreso: m.tipo === 'egreso' ? m.monto : '',
-      Categoría: LABELS_CATEGORIA[m.categoria] || m.categoria,
-      'Proveedor / Unidad / Servicio': resolverNombreCategoria(m, { proveedores, unidades, servicios }),
-      'Nombre original banco': m.texto_original_banco || '',
-      Confirmado: m.confirmado ? 'Sí' : 'No',
-      'Saldo informado banco': m.saldo_informado_banco ?? '',
-    }))
-);
+  const filasDetalle = periodosConMovimientos.flatMap(({ periodo, movimientos }) =>
+    [...movimientos]
+      .sort((a, b) => a.orden_original - b.orden_original)
+      .map((m) => ({
+        Período: periodo.periodo,
+        Fecha: formatFechaDDMMYYYY(m.fecha),
+        Detalle: m.detalle,
+        Ingreso: m.tipo === 'ingreso' ? m.monto : '',
+        Egreso: m.tipo === 'egreso' ? m.monto : '',
+        Categoría: LABELS_CATEGORIA[m.categoria] || m.categoria,
+        'Proveedor / Unidad / Servicio': resolverNombreCategoria(m, { proveedores, unidades, servicios }),
+        'Nombre original banco': m.texto_original_banco || '',
+        Confirmado: m.confirmado ? 'Sí' : 'No',
+        'Saldo informado banco': m.saldo_informado_banco ?? '',
+      }))
+  );
+
   const wb = XLSX.utils.book_new();
 
   const wsResumen = XLSX.utils.json_to_sheet(filasResumen);
@@ -113,8 +135,8 @@ const filasDetalle = periodosConMovimientos.flatMap(({ periodo, movimientos }) =
 
   const primerPeriodo = periodosConMovimientos[0].periodo;
   const nombreArchivo = esMultiple
-    ? `LibroDiario_${primerPeriodo.periodo}_a_${periodosConMovimientos[periodosConMovimientos.length - 1].periodo.periodo}.xlsx`
-    : `LibroDiario_${primerPeriodo.periodo}_${(primerPeriodo.banco || 'banco').replace(/\s+/g, '')}.xlsx`;
+    ? `LibroDiario_${nombreConsorcioArchivo}_${primerPeriodo.periodo}_a_${periodosConMovimientos[periodosConMovimientos.length - 1].periodo.periodo}.xlsx`
+    : `LibroDiario_${nombreConsorcioArchivo}_${primerPeriodo.periodo}_${(primerPeriodo.banco || 'banco').replace(/\s+/g, '')}.xlsx`;
 
   XLSX.writeFile(wb, nombreArchivo);
 }

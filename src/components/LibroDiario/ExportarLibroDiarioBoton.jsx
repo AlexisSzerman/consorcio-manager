@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { exportarLibroDiarioExcel } from '../../utils/exportarLibroDiario';
 
-export default function ExportarLibroDiarioBoton({ periodos, movimientosPorPeriodo, proveedores, servicios, unidades }) {
+export default function ExportarLibroDiarioBoton({ periodos, movimientosPorPeriodo, proveedores, servicios, unidades, consorcios }) {
   const [abierto, setAbierto] = useState(false);
   const [seleccionados, setSeleccionados] = useState([]);
 
@@ -17,7 +17,7 @@ export default function ExportarLibroDiarioBoton({ periodos, movimientosPorPerio
       .sort((a, b) => a.periodo.localeCompare(b.periodo))
       .map((periodo) => ({ periodo, movimientos: movimientosPorPeriodo[periodo.id] || [] }));
 
-    exportarLibroDiarioExcel(periodosConMovimientos, { proveedores, unidades, servicios });
+    exportarLibroDiarioExcel(periodosConMovimientos, { proveedores, unidades, servicios, consorcios });
     setAbierto(false);
     setSeleccionados([]);
   }

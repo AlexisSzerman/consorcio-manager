@@ -124,6 +124,7 @@ export default function LibroDiarioView({
             proveedores={proveedores}
             servicios={servicios}
             unidades={consorcioActual?.unidades || []}
+            consorcios={consorcios}
           />
           <button
             onClick={() => setMostrarNuevoPeriodo(true)}
